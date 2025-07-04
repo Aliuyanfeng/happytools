@@ -1,4 +1,4 @@
-module changeme
+module github.com/Aliuyanfeng/happytools
 
 go 1.24.4
 
