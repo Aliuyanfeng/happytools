@@ -1,4 +1,4 @@
-package main
+package greetservice
 
 type GreetService struct{}
 

@@ -6,6 +6,6 @@
 import {Call as $Call, Create as $Create} from "@wailsio/runtime";
 
 export function Greet(name: string): Promise<string> & { cancel(): void } {
-    let $resultPromise = $Call.ByID(1411160069, name) as any;
+    let $resultPromise = $Call.ByID(1477900579, name) as any;
     return $resultPromise;
 }
