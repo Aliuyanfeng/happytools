@@ -38,7 +38,6 @@
     <a-divider>关于我们</a-divider>
     <div class="about-section">
       <p>Happy Tools v1.0.0</p>
-      <p>一款功能丰富的桌面实用工具集合</p>
       <p>© 2023 Happy Tools. 保留所有权利。</p>
     </div>
   </a-form>

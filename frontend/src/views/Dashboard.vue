@@ -7,14 +7,14 @@
           <a-spin :spinning="memoryUsage === 0 " tip="Loading...">
             <a-card :bordered="false">
               <template #title>
-                <div class="flex justify-between items-center">
+                <div class="flex items-center justify-between">
                   <span>💾 内存</span>
                   <span class="ml-5 text-xs">
                     Used：{{ memoryUsed }}
                   </span>
                 </div>
               </template>
-              <div class="h-28 text-center relative">
+              <div class="relative text-center h-28">
                 <a-progress type="dashboard" :stroke-color="getProgressColor(memoryUsage)" :strokeWidth="8"
                             :percent="memoryUsage"/>
               </div>
@@ -25,14 +25,14 @@
           <a-spin :spinning="diskUsage.used_percent === 0 " tip="Loading...">
             <a-card :bordered="false">
               <template #title>
-                <div class="flex justify-between items-center">
+                <div class="flex items-center justify-between">
                   <span>💿 硬盘</span>
                   <span class="ml-5 text-xs">
                   Used：{{ formatBytes(diskUsage.used) }}
                 </span>
                 </div>
               </template>
-              <div class="flex flex-col justify-around items-center h-28">
+              <div class="flex flex-col items-center justify-around h-28">
                 <a-progress type="circle" :stroke-color="getProgressColor(diskUsage.used_percent)" :strokeWidth="8"
                             status="active" :percent="diskUsage.used_percent"/>
               </div>
@@ -43,7 +43,7 @@
           <a-spin :spinning="memoryUsage === 0 " tip="Loading...">
             <a-card :bordered="false">
               <template #title>
-                <div class="flex justify-between items-center">
+                <div class="flex items-center justify-between">
                   <span>🚀 网卡</span>
                   <a-select
                       ref="select"
@@ -71,26 +71,26 @@
                         <a-tag color="success" v-if="item.isUp">已连接</a-tag>
                         <a-tag color="error" v-else>未连接</a-tag>
                       </a-descriptions-item>
-                      <a-descriptions-item label="MAC地址">
+                      <a-descriptions-item label="MAC地址" class="font-bold">
                         {{ item.mac }}
                       </a-descriptions-item>
                       <a-descriptions-item label="Bytes">
-                        <div>
+                        <div class="text-[12px]">
                           <a-tag color="#87CEEB">RX</a-tag>
                           {{ formatBytes(item.bytesRecv) }}
                         </div>
-                        <div class="ml-2">
-                          <a-tag color="#FF9800">TX</a-tag>
+                        <div class="ml-2 text-[12px]">
+                          <a-tag color="#FF9800" >TX</a-tag>
                           {{ formatBytes(item.bytesSent) }}
                         </div>
                       </a-descriptions-item>
                       <a-descriptions-item label="Packets">
-                        <div>
+                        <div class="text-[12px]">
                           <a-tag color="#87CEEB">RX</a-tag>
                           {{ item.packetsRecv }}
                         </div>
-                        <div class="ml-2">
-                          <a-tag color="#FF9800">TX</a-tag>
+                        <div class="ml-2 text-[12px]">
+                          <a-tag color="#FF9800" class="text-[12px]">TX</a-tag>
                           {{ item.packetsSent }}
                         </div>
                       </a-descriptions-item>
@@ -105,9 +105,9 @@
       <a-row :gutter="24" class="mt-5">
         <a-col :span="12">
           <a-spin :spinning="cpuUsage?.length ===0" tip="Loading...">
-            <a-card title="🖥️ CPU负载情况" :bordered="false" size="small" :style="{height: '390px'}">
-              <div class="h-full flex flex-wrap justify-between items-center">
-                <div class="w-3/6 flex items-center justify-between mt-4" v-for="(item, index) in cpuUsage"
+            <a-card title="🖥️ CPU负载情况" :bordered="false" size="small" class="box-large" >
+              <div class="flex flex-wrap items-center justify-between h-full">
+                <div class="flex items-center justify-between w-3/6 mt-4" v-for="(item, index) in cpuUsage"
                      :key="index">
                   <span class="circle_number">{{ index }}</span>
                   <a-progress :steps="10" :size="[10, 10]" :percent="item"
@@ -119,13 +119,14 @@
         </a-col>
         <a-col :span="12">
           <a-spin :spinning="cpuUsage?.length ===0" tip="Loading...">
-            <a-card title="ℹ️ 主机详情" :bordered="false" size="small" :style="{height: '390px'}">
+            <a-card title="ℹ️ 主机详情" :bordered="false" size="small" class="box-large" >
               <a-descriptions :column="1" bordered>
                 <a-descriptions-item label="设备名称" :span="1">{{ hardwareInfo.hostname }}</a-descriptions-item>
                 <a-descriptions-item label="版本" :span="1">{{ hardwareInfo.platform }}</a-descriptions-item>
                 <a-descriptions-item label="处理器" :span="1">{{ hardwareInfo.modelName }}</a-descriptions-item>
                 <a-descriptions-item label="内存" :span="1">{{ memoryTotal }}</a-descriptions-item>
                 <a-descriptions-item label="系统版本" :span="1">{{ hardwareInfo.kernel_version }}</a-descriptions-item>
+                <a-descriptions-item label="系统架构" :span="1">{{ hardwareInfo.architecture }}</a-descriptions-item>
                 <a-descriptions-item label="存储" :span="1">{{ formatBytes(diskUsage.total) }}</a-descriptions-item>
               </a-descriptions>
             </a-card>
@@ -172,6 +173,7 @@ const hardwareInfo = reactive({ // 主机信息
   platform: '' as string | undefined,
   modelName: '' as string | undefined,
   kernel_version: '' as string | undefined,
+  architecture: '' as string | undefined,
 })
 const networkInterfaces = ref<any[] | undefined>([]); // 网卡信息
 const currentNetworkInterface = ref('') // 当前选中的网卡
@@ -183,25 +185,26 @@ const systemInfoInterval = ref<number | null>(null)
 onMounted(() => {
   console.log('mount');
   Events.On('monitor:sysInfo', (event) => {
-    // console.log(event.data);
+    console.log(event.data);
     // cpu信息
-    const cpuInfo = event.data[0].cpu_info;
+    const cpuInfo = event.data.cpu_info;
     cpuUsage.value = cpuInfo?.core_usages
     // 主机信息
-    hardwareInfo.hostname = event.data[0].host_info.hostname || ''
-    hardwareInfo.platform = event.data[0].host_info.platform || ''
-    hardwareInfo.kernel_version = event.data[0].host_info.kernel_version || ''
+    hardwareInfo.hostname = event.data.host_info.hostname || ''
+    hardwareInfo.platform = event.data.host_info.platform || ''
+    hardwareInfo.kernel_version = event.data.host_info.kernel_version || ''
     hardwareInfo.modelName = cpuInfo?.core_info.modelName || ''
+    hardwareInfo.architecture = event.data.host_info.architecture || ''
     // 内存信息
-    memoryUsage.value = event.data[0].memory_info.used_percent
-    memoryTotal.value = event.data[0].memory_info.total
-    memoryUsed.value = event.data[0].memory_info.used
+    memoryUsage.value = event.data.memory_info.used_percent
+    memoryTotal.value = event.data.memory_info.total
+    memoryUsed.value = event.data.memory_info.used
     // 硬盘信息
-    diskUsage.total = event.data[0].disk_info.total
-    diskUsage.used = event.data[0].disk_info.used
-    diskUsage.used_percent = event.data[0].disk_info.used_percent
+    diskUsage.total = event.data.disk_info.total
+    diskUsage.used = event.data.disk_info.used
+    diskUsage.used_percent = event.data.disk_info.used_percent
     // 网卡信息
-    networkInterfaces.value = event.data[0].network_interfaces
+    networkInterfaces.value = event.data.network_interfaces
     if (currentNetworkInterface.value === '') {
       currentNetworkInterface.value = networkInterfaces.value?.[0]?.name
     }
@@ -319,7 +322,7 @@ const formatBytes = (bytes: number) => {
   flex-direction: column;
   background-color: #f5f5f5;
   justify-content: space-between;
-  height: 100%;
+  /* height: 100%; */
 }
 
 /* 主内容区 */
@@ -333,6 +336,9 @@ const formatBytes = (bytes: number) => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .box-large {
+    height: 445px;
   }
 }
 
