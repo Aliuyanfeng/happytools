@@ -21,12 +21,15 @@ import (
 
 	"github.com/Aliuyanfeng/happytools/backend/services/appsettings"
 	"github.com/Aliuyanfeng/happytools/backend/services/category"
+	"github.com/Aliuyanfeng/happytools/backend/services/clipboard"
 	"github.com/Aliuyanfeng/happytools/backend/services/dailyreport"
+	"github.com/Aliuyanfeng/happytools/backend/services/encryption"
 	"github.com/Aliuyanfeng/happytools/backend/services/greetservice"
 	"github.com/Aliuyanfeng/happytools/backend/services/monitor"
 	"github.com/Aliuyanfeng/happytools/backend/services/network"
 	"github.com/Aliuyanfeng/happytools/backend/services/rename"
 	"github.com/Aliuyanfeng/happytools/backend/services/todo"
+	"github.com/Aliuyanfeng/happytools/backend/services/unitconverter"
 	virusTotal "github.com/Aliuyanfeng/happytools/backend/services/vt"
 	"github.com/Aliuyanfeng/happytools/backend/store"
 
@@ -87,6 +90,9 @@ func main() {
 	app.RegisterService(application.NewService(virusTotal.NewVTService(app)))
 	app.RegisterService(application.NewService(network.NewFileTransferService(app)))
 	app.RegisterService(application.NewService(network.NewTCPUDPService(app)))
+	app.RegisterService(application.NewService(unitconverter.NewUnitConverterService()))
+	app.RegisterService(application.NewService(encryption.NewEncryptionService()))
+	app.RegisterService(application.NewService(clipboard.NewClipboardService(app)))
 
 	systray := app.SystemTray.New()
 	systray.SetLabel("HappyTools")

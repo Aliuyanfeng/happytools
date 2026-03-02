@@ -1,0 +1,50 @@
+{
+  "skills": [
+    {
+      "name": "add-feature-module",
+      "displayName": "添加新功能模块",
+      "description": "在 HappyTools 项目中快速添加新的功能模块，包括后端服务、数据存储、前端页面和路由配置",
+      "version": "1.0.0",
+      "author": "HappyTools Team",
+      "tags": ["wails", "vue", "feature", "module", "backend", "frontend"],
+      "triggers": [
+        "添加新功能",
+        "创建新模块",
+        "新增功能模块",
+        "添加模块"
+      ],
+      "filePath": "add-feature-module.md",
+      "enabled": true,
+      "priority": 1,
+      "createdAt": "2026-02-24",
+      "updatedAt": "2026-02-24"
+    },
+    {
+      "name": "fix-common-issues",
+      "displayName": "修复常见问题",
+      "description": "快速诊断和修复 HappyTools 项目中的常见问题，包括编译错误、运行时错误、前后端通信问题等",
+      "version": "1.0.0",
+      "author": "HappyTools Team",
+      "tags": ["debug", "fix", "error", "troubleshoot", "wails", "vue"],
+      "triggers": [
+        "修复问题",
+        "解决错误",
+        "调试问题",
+        "排查错误",
+        "绑定未生成",
+        "数据库错误"
+      ],
+      "filePath": "fix-common-issues.md",
+      "enabled": true,
+      "priority": 2,
+      "createdAt": "2026-02-24",
+      "updatedAt": "2026-02-24"
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "description": "HappyTools 项目 Skill 配置",
+    "project": "HappyTools",
+    "framework": "Wails v3 + Vue 3"
+  }
+}

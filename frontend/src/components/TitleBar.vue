@@ -6,26 +6,41 @@
     </div>
 
     <div class="titlebar-right">
+      <button class="title-btn settings" title="设置" @click="openSettings">
+        <SettingOutlined class="icon" />
+      </button>
       <button class="title-btn minimize" title="最小化" @click="minimize"><span class="icon">−</span></button>
       <button class="title-btn maximize" title="最大化/还原" @click="toggleMaximize"><span class="icon">▢</span></button>
       <button class="title-btn close" title="关闭" @click="close"><span class="icon">✕</span></button>
     </div>
+
+    <!-- 全局设置弹窗 -->
+    <SettingsModal v-model:open="settingsVisible" />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { Window } from '@wailsio/runtime'
+import { SettingOutlined } from '@ant-design/icons-vue'
+import SettingsModal from './SettingsModal.vue'
+
+const settingsVisible = ref(false)
 
 function minimize() {
   Window.Minimise()
 }
 
 function toggleMaximize() {
-    Window.ToggleMaximise()
+  Window.ToggleMaximise()
 }
+
 function close() {
   Window.Close()
+}
+
+function openSettings() {
+  settingsVisible.value = true
 }
 
 // 为了兼容你给出的用法（直接使用 document.querySelector），同时在组件挂载时绑定选择器事件
@@ -124,6 +139,12 @@ onMounted(() => {
 .title-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   transform: translateY(-1px);
+}
+
+/* 设置按钮特殊样式 */
+.title-btn.settings:hover {
+  background: rgba(24, 144, 255, 0.8);
+  color: #ffffff;
 }
 
 /* 关闭按钮特殊样式 */

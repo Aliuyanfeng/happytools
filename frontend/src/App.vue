@@ -14,12 +14,14 @@ import { useRoute, useRouter } from 'vue-router';
 import { HomeOutlined } from '@ant-design/icons-vue';
 import TitleBar from './components/TitleBar.vue';
 import { useAppStore } from './stores/app';
+import { useSettingsStore } from './stores/settings';
 import {Events} from "@wailsio/runtime";
 
 
 const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
+const settingsStore = useSettingsStore();
 
 const showBackHome = computed(() => route.path !== '/');
 
@@ -31,6 +33,9 @@ function goHome() {
   }
 }
 onMounted(()=>{
+  // 初始化设置
+  settingsStore.initSettings()
+  
   Events.On('app:lastUsedTime', (event) => {
     console.log(event)
     if (event && event.data) {
@@ -80,6 +85,52 @@ html, body, #app {
   margin: 0;
   padding: 0;
   overflow: hidden; /* 禁止全局滚动条 */
+}
+
+/* 深色主题样式 */
+[data-theme="dark"] {
+  --bg-color: #141414;
+  --text-color: #ffffff;
+  --border-color: #434343;
+  --card-bg: #1f1f1f;
+  
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  
+  .ant-layout {
+    background: var(--bg-color);
+  }
+  
+  .ant-layout-content {
+    background: var(--bg-color);
+  }
+  
+  .ant-card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
+  }
+  
+  .ant-modal-content {
+    background: var(--card-bg);
+    color: var(--text-color);
+  }
+  
+  .ant-input,
+  .ant-select-selector,
+  .ant-picker {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
+  }
+  
+  .ant-btn {
+    border-color: var(--border-color);
+  }
+  
+  .app-footer {
+    color: #a6a6a6;
+  }
 }
 
 .layout {

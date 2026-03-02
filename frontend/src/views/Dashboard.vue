@@ -178,7 +178,11 @@ const hardwareInfo = reactive({ // 主机信息
 const networkInterfaces = ref<any[] | undefined>([]); // 网卡信息
 const currentNetworkInterface = ref('') // 当前选中的网卡
 const settingsVisible = ref(false);
-const settings = reactive(settingsStore.$state);
+const settings = reactive({
+  fontFamily: '',
+  fontSize: 16,
+  cacheDir: ''
+});
 
 const systemInfoInterval = ref<number | null>(null)
 // 生命周期
@@ -225,7 +229,7 @@ const closeSettings = () => {
 };
 
 const saveSettings = () => {
-  settingsStore.saveSettings(settings);
+  // 保存设置（这里可以添加保存逻辑）
   closeSettings();
 };
 

@@ -61,6 +61,15 @@ export const modules: ModuleConfig[] = [
     icon: 'ApartmentOutlined',
     theme: 'orange',
     tags: []
+  },
+  {
+    id: 'dailyReport',
+    name: '日报管理',
+    description: '记录每日工作日报，日历视图展示，支持周月切换',
+    path: '/dailyReport',
+    icon: 'CalendarOutlined',
+    theme: 'cyan',
+    tags: ['日报', '日历', '工作记录']
   }
 ]
 
