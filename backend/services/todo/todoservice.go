@@ -74,7 +74,7 @@ func (t *TodoService) Add(title string, categoryID *int, dueDate *string, priori
 
 	var dueDateStr *string
 	if todo.DueDate != nil {
-		s := todo.DueDate.Format("2026-01-02")
+		s := todo.DueDate.Format("2006-01-02")
 		dueDateStr = &s
 	}
 

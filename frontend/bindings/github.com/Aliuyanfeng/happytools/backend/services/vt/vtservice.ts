@@ -10,6 +10,142 @@
 // @ts-ignore: Unused imports
 import {Call as $Call, Create as $Create} from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as store$0 from "../../store/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
+/**
+ * CheckAnalysisStatus 检查分析状态
+ */
+export function CheckAnalysisStatus(taskID: string): Promise<$models.VTTask | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(598662897, taskID) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType1($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * CreateDirectoryScanTask 创建目录批量扫描任务
+ */
+export function CreateDirectoryScanTask(directoryPath: string): Promise<$models.VTTask | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(1925676754, directoryPath) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType1($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * CreateScanTask 创建扫描任务并上传文件
+ */
+export function CreateScanTask(filePath: string): Promise<$models.VTTask | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(360281883, filePath) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType1($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * DeleteTask 删除任务
+ */
+export function DeleteTask(taskID: string): Promise<void> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(4162849889, taskID) as any;
+    return $resultPromise;
+}
+
+/**
+ * GetAPIKey 获取当前 API Key
+ */
+export function GetAPIKey(): Promise<string> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(325723842) as any;
+    return $resultPromise;
+}
+
+/**
+ * GetAllTasks 获取所有任务
+ */
+export function GetAllTasks(): Promise<($models.VTTask | null)[]> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(3330197066) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType2($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * GetAnalysis gets the analysis result from VirusTotal
+ */
+export function GetAnalysis(analysisID: string): Promise<$models.Task | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(1267140751, analysisID) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType4($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * GetConcurrency 获取并发扫描数
+ */
+export function GetConcurrency(): Promise<number> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(1323754804) as any;
+    return $resultPromise;
+}
+
+/**
+ * GetFileDetail 获取文件详情
+ */
+export function GetFileDetail(fileID: string): Promise<store$0.VTFile | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(1340957254, fileID) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType6($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * GetFileInfo 获取文件信息
+ */
+export function GetFileInfo(filePath: string): Promise<[string, number]> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(1756313475, filePath) as any;
+    return $resultPromise;
+}
+
+/**
+ * GetTask 获取单个任务
+ */
+export function GetTask(taskID: string): Promise<$models.VTTask | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(745305392, taskID) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType1($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * GetTaskFiles 获取任务下所有文件
+ */
+export function GetTaskFiles(taskID: string): Promise<(store$0.VTFile | null)[]> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(2598262735, taskID) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType7($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
 /**
  * OpenFileDialog opens a file dialog and returns the selected file path.
  */
@@ -19,9 +155,59 @@ export function OpenFileDialog(): Promise<string> & { cancel(): void } {
 }
 
 /**
- * OpenFileDialogs opens a file dialog and returns the selected file paths.
+ * OpenFileDialogs opens a directory dialog and returns the selected directory path.
  */
 export function OpenFileDialogs(): Promise<string> & { cancel(): void } {
     let $resultPromise = $Call.ByID(3711403438) as any;
     return $resultPromise;
 }
+
+/**
+ * RefreshFileStatus 刷新文件扫描状态
+ */
+export function RefreshFileStatus(fileID: string): Promise<store$0.VTFile | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(296354214, fileID) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType6($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+/**
+ * SetAPIKey sets the API key for VirusTotal
+ */
+export function SetAPIKey(apiKey: string): Promise<void> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(2464338774, apiKey) as any;
+    return $resultPromise;
+}
+
+/**
+ * SetConcurrency 设置并发扫描数
+ */
+export function SetConcurrency(concurrency: number): Promise<void> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(1756967824, concurrency) as any;
+    return $resultPromise;
+}
+
+/**
+ * UploadFile uploads a file to VirusTotal for scanning
+ */
+export function UploadFile(filePath: string): Promise<$models.Task | null> & { cancel(): void } {
+    let $resultPromise = $Call.ByID(1508833308, filePath) as any;
+    let $typingPromise = $resultPromise.then(($result: any) => {
+        return $$createType4($result);
+    }) as any;
+    $typingPromise.cancel = $resultPromise.cancel.bind($resultPromise);
+    return $typingPromise;
+}
+
+// Private type creation functions
+const $$createType0 = $models.VTTask.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $models.Task.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = store$0.VTFile.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $Create.Array($$createType6);

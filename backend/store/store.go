@@ -17,6 +17,8 @@ var (
 	categoryBucket    = []byte("categories")
 	dailyReportBucket = []byte("daily_reports")
 	appSettingsBucket = []byte("app_settings")
+	vtTaskBucket      = []byte("vt_tasks")
+	vtFileBucket      = []byte("vt_files") // 批量任务中的子文件
 )
 
 // Init 初始化 bbolt 数据库
@@ -29,7 +31,7 @@ func Init(path string) error {
 
 	// 创建所有 bucket
 	return DB.Update(func(tx *bbolt.Tx) error {
-		buckets := [][]byte{todoBucket, categoryBucket, dailyReportBucket, appSettingsBucket}
+		buckets := [][]byte{todoBucket, categoryBucket, dailyReportBucket, appSettingsBucket, vtTaskBucket, vtFileBucket}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
 				return err

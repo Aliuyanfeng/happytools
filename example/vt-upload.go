@@ -145,7 +145,7 @@ func uploadFile(filePath string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-
+	fmt.Printf("结果集合: %+v\n", resp)
 	var respData struct {
 		Data struct {
 			ID string `json:"id"`
@@ -171,7 +171,7 @@ func waitForAnalysis(id string, timeoutSec int) (sha256 string, timedOut bool) {
 			continue
 		}
 		defer resp.Body.Close()
-
+		
 		var result struct {
 			Data struct {
 				Attributes struct {

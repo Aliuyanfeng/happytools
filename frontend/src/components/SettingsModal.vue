@@ -18,6 +18,14 @@
           <SettingOutlined class="sidebar-icon" />
           <span>基本设置</span>
         </div>
+        <div
+          class="sidebar-item"
+          :class="{ active: activeTab === 'virustotal' }"
+          @click="activeTab = 'virustotal'"
+        >
+          <SafetyOutlined class="sidebar-icon" />
+          <span>VirusTotal</span>
+        </div>
         <!-- 未来可以添加更多设置项 -->
         <!-- <div
           class="sidebar-item"
@@ -28,7 +36,7 @@
           <span>高级设置</span>
         </div> -->
       </div>
-
+  
       <!-- 右侧内容区 -->
       <div class="settings-content">
         <!-- 基本设置 -->
@@ -55,7 +63,7 @@
                 自动模式将跟随系统主题设置
               </div>
             </a-form-item>
-
+  
             <!-- 字体大小 -->
             <a-form-item label="字体大小">
               <a-radio-group v-model:value="settingsStore.fontSize" button-style="solid">
@@ -64,7 +72,7 @@
                 <a-radio-button value="large">大</a-radio-button>
               </a-radio-group>
             </a-form-item>
-
+  
             <!-- 自定义字体 -->
             <a-form-item label="自定义字体">
               <a-select
@@ -89,7 +97,56 @@
             </a-form-item>
           </a-form>
         </div>
+  
+        <!-- VirusTotal 设置 -->
+        <div v-if="activeTab === 'virustotal'" class="settings-panel">
+          <a-form layout="vertical">
+            <a-alert
+              message="VirusTotal API 配置"
+              description="请输入您的 VirusTotal API Key，用于文件病毒检测服务。您可以在 VirusTotal 官网获取 API Key。"
+              type="info"
+              show-icon
+              class="mb-4"
+            />
 
+            <a-form-item label="API Key">
+              <a-input-password
+                v-model:value="settingsStore.vtApiKey"
+                placeholder="请输入您的 VirusTotal API Key"
+                style="width: 100%"
+                @blur="handleApiKeyBlur"
+              />
+              <div class="setting-hint">
+                <InfoCircleOutlined class="mr-1" />
+                API Key 将安全存储在本地，不会上传到服务器
+              </div>
+            </a-form-item>
+
+            <a-divider>扫描设置</a-divider>
+
+            <a-form-item label="并发扫描数">
+              <a-slider
+                v-model:value="settingsStore.vtConcurrency"
+                :min="1"
+                :max="10"
+                :marks="{ 1: '1', 3: '3', 5: '5', 7: '7', 10: '10' }"
+                @afterChange="handleConcurrencyChange"
+              />
+              <div class="setting-hint">
+                <InfoCircleOutlined class="mr-1" />
+                目录扫描时同时上传的文件数量，建议设置为 3-5，避免触发 API 限制
+              </div>
+            </a-form-item>
+
+            <a-form-item>
+              <a-button type="link" @click="openVirusTotalDocs">
+                <LinkOutlined class="mr-1" />
+                查看 VirusTotal API 文档
+              </a-button>
+            </a-form-item>
+          </a-form>
+        </div>
+  
         <!-- 高级设置（预留） -->
         <!-- <div v-if="activeTab === 'advanced'" class="settings-panel">
           <a-empty description="高级设置开发中..." />
@@ -101,13 +158,17 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { message } from 'ant-design-vue'
 import {
   SettingOutlined,
   BulbOutlined,
   SyncOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  SafetyOutlined,
+  LinkOutlined
 } from '@ant-design/icons-vue'
 import { useSettingsStore } from '../stores/settings'
+import { VTService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt'
 
 const props = defineProps<{
   open: boolean
@@ -132,6 +193,35 @@ watch(visible, (newVal) => {
 
 function handleClose() {
   visible.value = false
+}
+
+function openVirusTotalDocs() {
+  window.open('https://docs.virustotal.com/reference/overview', '_blank')
+}
+
+// API Key 输入框失焦时保存到后端
+async function handleApiKeyBlur() {
+  const apiKey = settingsStore.vtApiKey
+  if (apiKey) {
+    try {
+      await VTService.SetAPIKey(apiKey)
+      message.success('API Key 已保存')
+    } catch (error) {
+      console.error('Failed to save API Key:', error)
+      message.error('保存 API Key 失败')
+    }
+  }
+}
+
+// 并发数变更时保存到后端
+async function handleConcurrencyChange(value: number) {
+  try {
+    await VTService.SetConcurrency(value)
+    message.success(`并发扫描数已设置为 ${value}`)
+  } catch (error) {
+    console.error('Failed to save concurrency:', error)
+    message.error('保存并发设置失败')
+  }
 }
 </script>
 
@@ -211,6 +301,10 @@ function handleClose() {
 
 .mr-1 {
   margin-right: 4px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
 }
 
 /* 深色主题样式 */

@@ -7,12 +7,18 @@ export type FontSize = 'small' | 'medium' | 'large'
 export const useSettingsStore = defineStore('settings', () => {
   // 主题模式
   const themeMode = ref<ThemeMode>((localStorage.getItem('themeMode') as ThemeMode) || 'light')
-  
+
   // 字体大小
   const fontSize = ref<FontSize>((localStorage.getItem('fontSize') as FontSize) || 'medium')
-  
+
   // 自定义字体
   const customFont = ref<string>(localStorage.getItem('customFont') || '')
+
+  // VirusTotal API Key
+  const vtApiKey = ref<string>(localStorage.getItem('vtApiKey') || '')
+
+  // VirusTotal 并发扫描数
+  const vtConcurrency = ref<number>(parseInt(localStorage.getItem('vtConcurrency') || '5'))
 
   // 监听变化并保存到本地存储
   watch(themeMode, (newVal) => {
@@ -30,10 +36,18 @@ export const useSettingsStore = defineStore('settings', () => {
     applyCustomFont(newVal)
   })
 
+  watch(vtApiKey, (newVal) => {
+    localStorage.setItem('vtApiKey', newVal)
+  })
+
+  watch(vtConcurrency, (newVal) => {
+    localStorage.setItem('vtConcurrency', String(newVal))
+  })
+
   // 应用主题
   function applyTheme(mode: ThemeMode) {
     const root = document.documentElement
-    
+
     if (mode === 'auto') {
       // 跟随系统
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -75,6 +89,8 @@ export const useSettingsStore = defineStore('settings', () => {
     themeMode,
     fontSize,
     customFont,
+    vtApiKey,
+    vtConcurrency,
     initSettings
   }
 })
