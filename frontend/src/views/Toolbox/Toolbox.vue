@@ -56,7 +56,7 @@
           <h1 class="mb-4 text-3xl font-bold text-gray-800">欢迎使用工具盒子</h1>
           <p class="mb-8 text-lg text-gray-600">请从左侧选择一个工具开始使用</p>
 
-          <div class="quick-access">
+          <!-- <div class="quick-access">
             <h3 class="mb-4 text-lg font-semibold text-gray-800">快速访问</h3>
             <a-row :gutter="[16, 16]">
               <a-col :span="12">
@@ -80,7 +80,7 @@
                 </a-card>
               </a-col>
             </a-row>
-          </div>
+          </div> -->
         </div>
       </div>
 

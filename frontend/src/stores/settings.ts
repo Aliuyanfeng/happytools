@@ -1,8 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { setLocale } from '../locales'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 export type FontSize = 'small' | 'medium' | 'large'
+export type Language = 'auto' | 'zh-CN' | 'en-US'
+export type CloseBehavior = 'exit' | 'hide'
 
 export const useSettingsStore = defineStore('settings', () => {
   // 主题模式
@@ -13,6 +16,12 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // 自定义字体
   const customFont = ref<string>(localStorage.getItem('customFont') || '')
+
+  // 界面语言
+  const language = ref<Language>((localStorage.getItem('language') as Language) || 'auto')
+
+  // 关闭按钮行为
+  const closeBehavior = ref<CloseBehavior>((localStorage.getItem('closeBehavior') as CloseBehavior) || 'exit')
 
   // VirusTotal API Key
   const vtApiKey = ref<string>(localStorage.getItem('vtApiKey') || '')
@@ -34,6 +43,15 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(customFont, (newVal) => {
     localStorage.setItem('customFont', newVal)
     applyCustomFont(newVal)
+  })
+
+  watch(language, (newVal) => {
+    localStorage.setItem('language', newVal)
+    setLocale(newVal)
+  })
+
+  watch(closeBehavior, (newVal) => {
+    localStorage.setItem('closeBehavior', newVal)
   })
 
   watch(vtApiKey, (newVal) => {
@@ -83,12 +101,15 @@ export const useSettingsStore = defineStore('settings', () => {
     applyTheme(themeMode.value)
     applyFontSize(fontSize.value)
     applyCustomFont(customFont.value)
+    setLocale(language.value)
   }
 
   return {
     themeMode,
     fontSize,
     customFont,
+    language,
+    closeBehavior,
     vtApiKey,
     vtConcurrency,
     initSettings

@@ -5,7 +5,7 @@
       <div class="left-panel">
         <div class="panel-header">
           <div class="panel-icon">🚀</div>
-          <h2 class="panel-title">功能入口</h2>
+          <h2 class="panel-title">{{ t('home.featureEntry') }}</h2>
         </div>
 
         <div class="menu-list">
@@ -19,7 +19,7 @@
               <component :is="getIconComponent(module.icon)" />
             </div>
             <div class="menu-content">
-              <h3 class="menu-title">{{ module.name }}</h3>
+              <h3 class="menu-title">{{ t(module.nameKey) }}</h3>
             </div>
             <div class="menu-arrow">
               <ArrowRightOutlined />
@@ -31,25 +31,33 @@
       <!-- 右侧：欢迎信息 -->
       <div class="right-panel">
         <div class="welcome-card">
-          <div class="welcome-emoji">{{ welcomeInfo.emoji }}</div>
-          <h1 class="welcome-title">{{ welcomeInfo.title }}</h1>
-          <h2 class="welcome-subtitle">{{ welcomeInfo.subtitle }}</h2>
+          <div class="welcome-emoji">👋</div>
+          <h1 class="welcome-title">{{ t('home.welcome') }}</h1>
+          <h2 class="welcome-subtitle">{{ t('home.subtitle') }}</h2>
 
           <div class="feature-list">
-            <div
-              v-for="feature in welcomeInfo.features"
-              :key="feature.title"
-              class="feature-item"
-            >
-              <div class="feature-icon">{{ feature.icon }}</div>
+            <div class="feature-item">
+              <div class="feature-icon">⚡</div>
               <div class="feature-content">
-                <h4>{{ feature.title }}</h4>
+                <h4>{{ t('home.lightFast') }}</h4>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🔒</div>
+              <div class="feature-content">
+                <h4>{{ t('home.secure') }}</h4>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🎯</div>
+              <div class="feature-content">
+                <h4>{{ t('home.simple') }}</h4>
               </div>
             </div>
           </div>
 
           <div class="version-info">
-            <span class="version-text">{{ welcomeInfo.version }}</span>
+            <span class="version-text">v1.0.0</span>
             <span class="copyright-text">© 2025 Li6 - Happy Tools. Built with Wails3</span>
           </div>
         </div>
@@ -60,6 +68,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   DashboardOutlined,
   CheckCircleOutlined,
@@ -68,8 +77,9 @@ import {
   ArrowRightOutlined,
   ApartmentOutlined
 } from '@ant-design/icons-vue'
-import { modules, welcomeInfo, themeColors } from '@/config/modules'
+import { modules, themeColors } from '@/config/modules'
 
+const { t } = useI18n()
 const router = useRouter()
 
 // 图标组件映射

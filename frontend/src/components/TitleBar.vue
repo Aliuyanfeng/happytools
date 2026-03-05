@@ -6,12 +6,12 @@
     </div>
 
     <div class="titlebar-right">
-      <button class="title-btn settings" title="设置" @click="openSettings">
+      <button class="title-btn settings" :title="t('settings.title')" @click="openSettings">
         <SettingOutlined class="icon" />
       </button>
-      <button class="title-btn minimize" title="最小化" @click="minimize"><span class="icon">−</span></button>
-      <button class="title-btn maximize" title="最大化/还原" @click="toggleMaximize"><span class="icon">▢</span></button>
-      <button class="title-btn close" title="关闭" @click="close"><span class="icon">✕</span></button>
+      <button class="title-btn minimize" :title="t('app.minimize')" @click="minimize"><span class="icon">−</span></button>
+      <button class="title-btn maximize" :title="t('app.maximize')" @click="toggleMaximize"><span class="icon">▢</span></button>
+      <button class="title-btn close" :title="t('app.close')" @click="close"><span class="icon">✕</span></button>
     </div>
 
     <!-- 全局设置弹窗 -->
@@ -21,10 +21,14 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Window } from '@wailsio/runtime'
 import { SettingOutlined } from '@ant-design/icons-vue'
 import SettingsModal from './SettingsModal.vue'
+import { useSettingsStore } from '../stores/settings'
 
+const { t } = useI18n()
+const settingsStore = useSettingsStore()
 const settingsVisible = ref(false)
 
 function minimize() {
@@ -36,7 +40,12 @@ function toggleMaximize() {
 }
 
 function close() {
-  Window.Close()
+  // 根据设置决定关闭行为
+  if (settingsStore.closeBehavior === 'hide') {
+    Window.Hide()
+  } else {
+    Window.Close()
+  }
 }
 
 function openSettings() {

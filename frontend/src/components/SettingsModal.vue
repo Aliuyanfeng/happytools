@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="全局设置"
+    :title="t('settings.title')"
     width="700px"
     :footer="null"
     :bodyStyle="{ padding: 0 }"
@@ -16,7 +16,7 @@
           @click="activeTab = 'basic'"
         >
           <SettingOutlined class="sidebar-icon" />
-          <span>基本设置</span>
+          <span>{{ t('settings.basic') }}</span>
         </div>
         <div
           class="sidebar-item"
@@ -26,15 +26,6 @@
           <SafetyOutlined class="sidebar-icon" />
           <span>VirusTotal</span>
         </div>
-        <!-- 未来可以添加更多设置项 -->
-        <!-- <div
-          class="sidebar-item"
-          :class="{ active: activeTab === 'advanced' }"
-          @click="activeTab = 'advanced'"
-        >
-          <ToolOutlined class="sidebar-icon" />
-          <span>高级设置</span>
-        </div> -->
       </div>
   
       <!-- 右侧内容区 -->
@@ -42,46 +33,76 @@
         <!-- 基本设置 -->
         <div v-if="activeTab === 'basic'" class="settings-panel">
           <a-form layout="vertical">
+            <!-- 界面语言 -->
+            <a-form-item :label="t('settings.language')">
+              <a-radio-group v-model:value="settingsStore.language" button-style="solid">
+                <a-radio-button value="auto">
+                  <GlobalOutlined class="mr-1" />
+                  {{ t('settings.languageFollowSystem') }}
+                </a-radio-button>
+                <a-radio-button value="zh-CN">
+                  中文
+                </a-radio-button>
+                <a-radio-button value="en-US">
+                  English
+                </a-radio-button>
+              </a-radio-group>
+            </a-form-item>
+
+            <!-- 关闭按钮行为 -->
+            <a-form-item :label="t('settings.closeBehavior')">
+              <a-radio-group v-model:value="settingsStore.closeBehavior" button-style="solid">
+                <a-radio-button value="exit">
+                  <LogoutOutlined class="mr-1" />
+                  {{ t('settings.closeBehaviorExit') }}
+                </a-radio-button>
+                <a-radio-button value="hide">
+                  <EyeInvisibleOutlined class="mr-1" />
+                  {{ t('settings.closeBehaviorHide') }}
+                </a-radio-button>
+              </a-radio-group>
+            </a-form-item>
+
             <!-- 主题设置 -->
-            <a-form-item label="主题模式">
+            <a-form-item :label="t('settings.theme')">
               <a-radio-group v-model:value="settingsStore.themeMode" button-style="solid">
                 <a-radio-button value="light">
                   <BulbOutlined class="mr-1" />
-                  浅色
+                  {{ t('settings.themeLight') }}
                 </a-radio-button>
                 <a-radio-button value="dark">
                   <BulbOutlined class="mr-1" />
-                  深色
+                  {{ t('settings.themeDark') }}
                 </a-radio-button>
                 <a-radio-button value="auto">
                   <SyncOutlined class="mr-1" />
-                  自动
+                  {{ t('settings.themeAuto') }}
                 </a-radio-button>
               </a-radio-group>
               <div class="setting-hint">
                 <InfoCircleOutlined class="mr-1" />
-                自动模式将跟随系统主题设置
+                {{ t('settings.themeAutoHint') }}
               </div>
             </a-form-item>
   
             <!-- 字体大小 -->
-            <a-form-item label="字体大小">
+            <a-form-item :label="t('settings.fontSize')">
               <a-radio-group v-model:value="settingsStore.fontSize" button-style="solid">
-                <a-radio-button value="small">小</a-radio-button>
-                <a-radio-button value="medium">中</a-radio-button>
-                <a-radio-button value="large">大</a-radio-button>
+                <a-radio-button value="small">{{ t('settings.fontSizeSmall') }}</a-radio-button>
+                <a-radio-button value="medium">{{ t('settings.fontSizeMedium') }}</a-radio-button>
+                <a-radio-button value="large">{{ t('settings.fontSizeLarge') }}</a-radio-button>
               </a-radio-group>
             </a-form-item>
   
             <!-- 自定义字体 -->
-            <a-form-item label="自定义字体">
+            <a-form-item :label="t('settings.customFont')">
               <a-select
                 v-model:value="settingsStore.customFont"
-                placeholder="选择字体"
+                :placeholder="t('settings.customFont')"
                 allowClear
                 style="width: 100%"
               >
-                <a-select-option value="">默认字体</a-select-option>
+                <a-select-option value="">{{ t('settings.defaultFont') }}</a-select-option>
                 <a-select-option value="Microsoft YaHei">微软雅黑</a-select-option>
                 <a-select-option value="SimSun">宋体</a-select-option>
                 <a-select-option value="SimHei">黑体</a-select-option>
@@ -92,7 +113,7 @@
               </a-select>
               <div class="setting-hint">
                 <InfoCircleOutlined class="mr-1" />
-                选择系统已安装的字体
+                {{ t('settings.customFontHint') }}
               </div>
             </a-form-item>
           </a-form>
@@ -102,29 +123,29 @@
         <div v-if="activeTab === 'virustotal'" class="settings-panel">
           <a-form layout="vertical">
             <a-alert
-              message="VirusTotal API 配置"
-              description="请输入您的 VirusTotal API Key，用于文件病毒检测服务。您可以在 VirusTotal 官网获取 API Key。"
+              :message="t('settings.apiKeyNotConfigured')"
+              :description="t('settings.apiKeyNotConfiguredDesc')"
               type="info"
               show-icon
               class="mb-4"
             />
 
-            <a-form-item label="API Key">
+            <a-form-item :label="t('settings.apiKey')">
               <a-input-password
                 v-model:value="settingsStore.vtApiKey"
-                placeholder="请输入您的 VirusTotal API Key"
+                :placeholder="t('settings.apiKeyPlaceholder')"
                 style="width: 100%"
                 @blur="handleApiKeyBlur"
               />
               <div class="setting-hint">
                 <InfoCircleOutlined class="mr-1" />
-                API Key 将安全存储在本地，不会上传到服务器
+                {{ t('settings.apiKeyHint') }}
               </div>
             </a-form-item>
 
-            <a-divider>扫描设置</a-divider>
+            <a-divider>{{ t('settings.concurrency') }}</a-divider>
 
-            <a-form-item label="并发扫描数">
+            <a-form-item :label="t('settings.concurrency')">
               <a-slider
                 v-model:value="settingsStore.vtConcurrency"
                 :min="1"
@@ -134,23 +155,18 @@
               />
               <div class="setting-hint">
                 <InfoCircleOutlined class="mr-1" />
-                目录扫描时同时上传的文件数量，建议设置为 3-5，避免触发 API 限制
+                {{ t('settings.concurrencyHint') }}
               </div>
             </a-form-item>
 
             <a-form-item>
               <a-button type="link" @click="openVirusTotalDocs">
                 <LinkOutlined class="mr-1" />
-                查看 VirusTotal API 文档
+                {{ t('settings.viewApiDocs') }}
               </a-button>
             </a-form-item>
           </a-form>
         </div>
-  
-        <!-- 高级设置（预留） -->
-        <!-- <div v-if="activeTab === 'advanced'" class="settings-panel">
-          <a-empty description="高级设置开发中..." />
-        </div> -->
       </div>
     </div>
   </a-modal>
@@ -159,16 +175,22 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import {
   SettingOutlined,
   BulbOutlined,
   SyncOutlined,
   InfoCircleOutlined,
   SafetyOutlined,
-  LinkOutlined
+  LinkOutlined,
+  GlobalOutlined,
+  LogoutOutlined,
+  EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
 import { useSettingsStore } from '../stores/settings'
 import { VTService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -205,10 +227,10 @@ async function handleApiKeyBlur() {
   if (apiKey) {
     try {
       await VTService.SetAPIKey(apiKey)
-      message.success('API Key 已保存')
+      message.success(t('settings.apiKeySaved'))
     } catch (error) {
       console.error('Failed to save API Key:', error)
-      message.error('保存 API Key 失败')
+      message.error(t('settings.apiKeySaveFailed'))
     }
   }
 }
@@ -217,10 +239,10 @@ async function handleApiKeyBlur() {
 async function handleConcurrencyChange(value: number) {
   try {
     await VTService.SetConcurrency(value)
-    message.success(`并发扫描数已设置为 ${value}`)
+    message.success(`${t('settings.concurrency')}: ${value}`)
   } catch (error) {
     console.error('Failed to save concurrency:', error)
-    message.error('保存并发设置失败')
+    message.error(t('common.failed'))
   }
 }
 </script>
@@ -228,7 +250,7 @@ async function handleConcurrencyChange(value: number) {
 <style scoped>
 .settings-container {
   display: flex;
-  height: 450px;
+  height: 500px;
 }
 
 .settings-sidebar {

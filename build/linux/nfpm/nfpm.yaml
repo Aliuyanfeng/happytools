@@ -3,26 +3,26 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "happytools.exe"
+name: "happytools"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.0"
+version: "1.0.0"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "My Product Description"
-vendor: "My Company"
+description: "A tool that can enhance one's sense of happiness"
+vendor: "AliuStudio"
 homepage: "https://wails.io"
 license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/happytools.exe"
-    dst: "/usr/local/bin/happytools.exe"
+  - src: "./bin/happytools"
+    dst: "/usr/local/bin/happytools"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/happytools.exe.png"
-  - src: "./build/linux/happytools.exe.desktop"
-    dst: "/usr/share/applications/happytools.exe.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/happytools.png"
+  - src: "./build/linux/happytools.desktop"
+    dst: "/usr/share/applications/happytools.desktop"
 
 depends:
   - gtk3

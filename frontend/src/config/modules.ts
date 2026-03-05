@@ -4,10 +4,11 @@
  */
 
 import type { Component } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 export interface ModuleConfig {
   id: string
-  name: string
+  nameKey: string // i18n key
   description: string
   path: string
   icon: string
@@ -19,7 +20,7 @@ export interface ModuleConfig {
 export const modules: ModuleConfig[] = [
   {
     id: 'dashboard',
-    name: '系统仪表盘',
+    nameKey: 'home.modules.dashboard',
     description: '',
     path: '/dashboard',
     icon: 'DashboardOutlined',
@@ -28,7 +29,7 @@ export const modules: ModuleConfig[] = [
   },
   {
     id: 'todo',
-    name: '智能待办',
+    nameKey: 'home.modules.todo',
     description: '',
     path: '/todo',
     icon: 'CheckCircleOutlined',
@@ -37,7 +38,7 @@ export const modules: ModuleConfig[] = [
   },
   {
     id: 'toolbox',
-    name: '工具盒子',
+    nameKey: 'home.modules.toolbox',
     description: '',
     path: '/toolbox',
     icon: 'ToolOutlined',
@@ -46,7 +47,7 @@ export const modules: ModuleConfig[] = [
   },
   {
     id: 'virusTotal',
-    name: 'VirusTotal',
+    nameKey: 'home.modules.virusTotal',
     description: '',
     path: '/vt',
     icon: 'SafetyOutlined',
@@ -55,7 +56,7 @@ export const modules: ModuleConfig[] = [
   },
   {
     id: 'network',
-    name: '网络调试',
+    nameKey: 'home.modules.network',
     description: '',
     path: '/network',
     icon: 'ApartmentOutlined',
@@ -64,7 +65,7 @@ export const modules: ModuleConfig[] = [
   },
   {
     id: 'dailyReport',
-    name: '日报管理',
+    nameKey: 'home.modules.dailyReport',
     description: '记录每日工作日报，日历视图展示，支持周月切换',
     path: '/dailyReport',
     icon: 'CalendarOutlined',

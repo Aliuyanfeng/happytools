@@ -4,16 +4,16 @@
       <template #title>
         <div class="flex items-center justify-between">
           <div>
-            任务列表
+            {{ t('virustotal.taskList') }}
           </div>
-          <a-button type="primary" class="ml-2" :icon="h(PlusOutlined)" @click="openCreateTaskModal">创建任务</a-button>
+          <a-button type="primary" class="ml-2" :icon="h(PlusOutlined)" @click="openCreateTaskModal">{{ t('virustotal.createTask') }}</a-button>
         </div>
       </template>
       <a-table :dataSource="tasks" :columns="columns" rowKey="id" :loading="loading" :pagination="{ pageSize: 10 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'taskType'">
             <a-tag :color="record.taskType === 'directory' ? 'blue' : 'green'">
-              {{ record.taskType === 'directory' ? '目录扫描' : '单文件' }}
+              {{ record.taskType === 'directory' ? t('virustotal.directoryScan') : t('virustotal.singleFile') }}
             </a-tag>
           </template>
           <template v-if="column.key === 'totalFiles'">
@@ -42,7 +42,7 @@
           <template v-if="column.key === 'action'">
             <a-space>
               <a-button type="link" size="small" @click="viewTaskDetail(record)">
-                查看详情
+                {{ t('virustotal.viewDetail') }}
               </a-button>
               <a-button
                 type="link"
@@ -51,15 +51,15 @@
                 :loading="record.refreshing"
                 v-if="record.status !== 'completed' && record.status !== 'failed'"
               >
-                刷新状态
+                {{ t('virustotal.refreshStatus') }}
               </a-button>
               <a-popconfirm
-                title="确定要删除此任务吗？"
+                :title="t('virustotal.deleteConfirm')"
                 @confirm="deleteTask(record.id)"
-                okText="确定"
-                cancelText="取消"
+                :okText="t('common.confirm')"
+                :cancelText="t('common.cancel')"
               >
-                <a-button type="link" size="small" danger>删除</a-button>
+                <a-button type="link" size="small" danger>{{ t('common.delete') }}</a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -70,7 +70,7 @@
     <!-- 创建任务弹窗 -->
     <a-modal
       v-model:open="createModalVisible"
-      title="创建扫描任务"
+      :title="t('virustotal.createTask')"
       centered
       :maskClosable="false"
       @ok="createTask"
@@ -79,46 +79,46 @@
     >
       <a-alert
         v-if="!settingsStore.vtApiKey"
-        message="未配置 API Key"
-        description="请先在全局设置中配置 VirusTotal API Key"
+        :message="t('settings.apiKeyNotConfigured')"
+        :description="t('settings.apiKeyNotConfiguredDesc')"
         type="warning"
         show-icon
         class="mb-4"
       />
 
       <a-form :model="formState" layout="vertical">
-        <a-form-item label="扫描类型" required>
+        <a-form-item :label="t('virustotal.scanType')" required>
           <a-radio-group v-model:value="formState.scanType">
-            <a-radio value="file">单个文件</a-radio>
-            <a-radio value="directory">批量目录</a-radio>
+            <a-radio value="file">{{ t('virustotal.singleFileScan') }}</a-radio>
+            <a-radio value="directory">{{ t('virustotal.batchDirectory') }}</a-radio>
           </a-radio-group>
         </a-form-item>
 
         <a-form-item
-          label="文件路径"
+          :label="t('virustotal.filePath')"
           v-if="formState.scanType === 'file'"
           required
         >
           <a-input-group compact>
             <a-input v-model:value="formState.filePath" readonly style="width: calc(100% - 100px)" />
             <a-button type="primary" @click="chooseFile">
-              选择文件
+              {{ t('virustotal.selectFile') }}
             </a-button>
           </a-input-group>
         </a-form-item>
 
         <a-form-item
-          label="目录路径"
+          :label="t('virustotal.directoryPath')"
           v-if="formState.scanType === 'directory'"
           required
         >
           <a-input-group compact>
             <a-input v-model:value="formState.directoryPath" readonly style="width: calc(100% - 100px)" />
             <a-button type="primary" @click="chooseDirectory">
-              选择目录
+              {{ t('virustotal.selectDirectory') }}
             </a-button>
           </a-input-group>
-          <div class="text-gray-500 text-xs mt-1">将递归扫描目录下所有文件</div>
+          <div class="text-gray-500 text-xs mt-1">{{ t('virustotal.recursiveScanHint') }}</div>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -126,30 +126,30 @@
     <!-- 任务详情弹窗 - 统一显示文件列表 -->
     <a-modal
       v-model:open="detailModalVisible"
-      :title="currentTask?.taskType === 'directory' ? '目录扫描结果' : '扫描结果'"
+      :title="currentTask?.taskType === 'directory' ? t('virustotal.directoryScanResult') : t('virustotal.scanResult')"
       :width="currentTask?.taskType === 'directory' ? '1200px' : '1000px'"
       :footer="null"
     >
       <div v-if="currentTask" class="task-detail">
         <!-- 基本信息 -->
         <a-descriptions :column="currentTask?.taskType === 'directory' ? 3 : 2" bordered size="small">
-          <a-descriptions-item label="任务类型">
+          <a-descriptions-item :label="t('virustotal.taskType')">
             <a-tag :color="currentTask.taskType === 'directory' ? 'blue' : 'green'">
-              {{ currentTask.taskType === 'directory' ? '目录扫描' : '单文件' }}
+              {{ currentTask.taskType === 'directory' ? t('virustotal.directoryScan') : t('virustotal.singleFile') }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="名称">
+          <a-descriptions-item :label="t('virustotal.fileInfo')">
             <a-tooltip :title="currentTask.filePath">
               <span class="mono-text">{{ currentTask.fileName || '未知' }}</span>
             </a-tooltip>
           </a-descriptions-item>
-          <a-descriptions-item label="状态">
+          <a-descriptions-item :label="t('virustotal.taskStatus')">
             <a-tag :color="getStatusColor(currentTask.status)">
               {{ getStatusText(currentTask.status) }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="文件总数">{{ currentTask.taskType === 'directory' ? (currentTask.totalFiles || 0) : 1 }}</a-descriptions-item>
-          <a-descriptions-item label="扫描进度" v-if="currentTask.taskType === 'directory'">
+          <a-descriptions-item :label="t('virustotal.totalFiles')">{{ currentTask.taskType === 'directory' ? (currentTask.totalFiles || 0) : 1 }}</a-descriptions-item>
+          <a-descriptions-item :label="t('virustotal.scanTime')" v-if="currentTask.taskType === 'directory'">
             {{ currentTask.completedFiles || 0 }} / {{ currentTask.totalFiles || 0 }}
             <a-progress
               :percent="directoryProgress"
@@ -157,69 +157,69 @@
               style="width: 100px; margin-left: 8px"
             />
           </a-descriptions-item>
-          <a-descriptions-item label="扫描时间">{{ currentTask.scanTime || '-' }}</a-descriptions-item>
+          <a-descriptions-item :label="t('virustotal.scanTime')">{{ currentTask.scanTime || '-' }}</a-descriptions-item>
         </a-descriptions>
 
         <!-- 统计概览 - 目录任务 -->
         <template v-if="currentTask.taskType === 'directory'">
-          <a-divider orientation="left">扫描概览</a-divider>
+          <a-divider orientation="left">{{ t('virustotal.scanOverview') }}</a-divider>
           <div class="stats-container">
             <div class="stat-item stat-malicious">
               <div class="stat-count">{{ currentTask.maliciousFiles || 0 }}</div>
-              <div class="stat-label">恶意文件</div>
+              <div class="stat-label">{{ t('virustotal.maliciousFiles') }}</div>
             </div>
             <div class="stat-item stat-suspicious">
               <div class="stat-count">{{ currentTask.suspiciousFiles || 0 }}</div>
-              <div class="stat-label">可疑文件</div>
+              <div class="stat-label">{{ t('virustotal.suspiciousFiles') }}</div>
             </div>
             <div class="stat-item stat-safe">
               <div class="stat-count">{{ (currentTask.completedFiles || 0) - (currentTask.maliciousFiles || 0) - (currentTask.suspiciousFiles || 0) }}</div>
-              <div class="stat-label">安全文件</div>
+              <div class="stat-label">{{ t('virustotal.safeFiles') }}</div>
             </div>
             <div class="stat-item stat-pending">
               <div class="stat-count">{{ (currentTask.totalFiles || 0) - (currentTask.completedFiles || 0) }}</div>
-              <div class="stat-label">待扫描</div>
+              <div class="stat-label">{{ t('virustotal.pendingScan') }}</div>
             </div>
           </div>
         </template>
 
         <!-- 统计概览 - 单文件任务 -->
         <template v-else>
-          <a-divider orientation="left">扫描概览</a-divider>
+          <a-divider orientation="left">{{ t('virustotal.scanOverview') }}</a-divider>
           <div class="stats-container">
             <div class="stat-item stat-malicious">
               <div class="stat-count">{{ (currentTask.stats?.malicious || 0) > 0 ? 1 : 0 }}</div>
-              <div class="stat-label">恶意文件</div>
+              <div class="stat-label">{{ t('virustotal.maliciousFiles') }}</div>
             </div>
             <div class="stat-item stat-suspicious">
               <div class="stat-count">{{ (currentTask.stats?.suspicious || 0) > 0 && (currentTask.stats?.malicious || 0) === 0 ? 1 : 0 }}</div>
-              <div class="stat-label">可疑文件</div>
+              <div class="stat-label">{{ t('virustotal.suspiciousFiles') }}</div>
             </div>
             <div class="stat-item stat-safe">
               <div class="stat-count">{{ (currentTask.stats?.malicious || 0) === 0 && (currentTask.stats?.suspicious || 0) === 0 && currentTask.status === 'completed' ? 1 : 0 }}</div>
-              <div class="stat-label">安全文件</div>
+              <div class="stat-label">{{ t('virustotal.safeFiles') }}</div>
             </div>
             <div class="stat-item stat-pending">
               <div class="stat-count">{{ currentTask.status !== 'completed' ? 1 : 0 }}</div>
-              <div class="stat-label">待扫描</div>
+              <div class="stat-label">{{ t('virustotal.pendingScan') }}</div>
             </div>
           </div>
         </template>
 
         <!-- 文件列表 -->
         <a-divider orientation="left">
-          文件列表
-          <span class="result-count">(共 {{ taskFiles.length }} 个文件)</span>
+          {{ t('virustotal.fileList') }}
+          <span class="result-count">({{ t('virustotal.filesTotal', { count: taskFiles.length }) }})</span>
         </a-divider>
 
         <!-- 文件筛选 - 仅目录任务显示 -->
         <div class="filter-section" v-if="currentTask.taskType === 'directory'">
           <a-radio-group v-model:value="fileFilter" button-style="solid" size="small">
-            <a-radio-button value="all">全部</a-radio-button>
-            <a-radio-button value="malicious">恶意</a-radio-button>
-            <a-radio-button value="suspicious">可疑</a-radio-button>
-            <a-radio-button value="safe">安全</a-radio-button>
-            <a-radio-button value="pending">扫描中</a-radio-button>
+            <a-radio-button value="all">{{ t('virustotal.filter.all') }}</a-radio-button>
+            <a-radio-button value="malicious">{{ t('virustotal.filter.malicious') }}</a-radio-button>
+            <a-radio-button value="suspicious">{{ t('virustotal.filter.suspicious') }}</a-radio-button>
+            <a-radio-button value="safe">{{ t('virustotal.filter.safe') }}</a-radio-button>
+            <a-radio-button value="pending">{{ t('virustotal.filter.scanning') }}</a-radio-button>
           </a-radio-group>
         </div>
 
@@ -269,7 +269,7 @@
                 @click="viewFileDetail(record)"
                 v-if="record.status === 'completed'"
               >
-                查看详情
+                {{ t('virustotal.viewDetail') }}
               </a-button>
               <a-button
                 type="link"
@@ -278,7 +278,7 @@
                 :loading="record.refreshing"
                 v-else-if="record.status !== 'failed'"
               >
-                刷新
+                {{ t('virustotal.refreshStatus') }}
               </a-button>
             </template>
           </template>
@@ -289,21 +289,21 @@
     <!-- 文件详情弹窗 -->
     <a-modal
       v-model:open="fileDetailModalVisible"
-      title="文件扫描详情"
+      :title="t('virustotal.fileScanDetail')"
       width="900px"
       :footer="null"
     >
       <div v-if="currentFile" class="task-detail">
         <!-- 基本信息 -->
         <a-descriptions :column="2" bordered size="small">
-          <a-descriptions-item label="文件名">{{ currentFile.fileName || '未知' }}</a-descriptions-item>
-          <a-descriptions-item label="文件大小">{{ formatFileSize(currentFile.fileSize) }}</a-descriptions-item>
-          <a-descriptions-item label="状态">
+          <a-descriptions-item :label="t('virustotal.fileInfo')">{{ currentFile.fileName || '未知' }}</a-descriptions-item>
+          <a-descriptions-item label="Size">{{ formatFileSize(currentFile.fileSize) }}</a-descriptions-item>
+          <a-descriptions-item :label="t('virustotal.taskStatus')">
             <a-tag :color="getFileStatusColor(currentFile.status)">
               {{ getFileStatusText(currentFile.status) }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="检出率">
+          <a-descriptions-item :label="t('virustotal.detectionRate')">
             <a-progress
               :percent="currentFile.detectionRate || 0"
               :status="currentFile.detectionRate > 0 ? 'exception' : 'success'"
@@ -314,63 +314,63 @@
             </span>
           </a-descriptions-item>
           <a-descriptions-item label="MD5" :span="2">
-            <span class="mono-text hash-value">{{ currentFile.md5 || '等待分析...' }}</span>
+            <span class="mono-text hash-value">{{ currentFile.md5 || '...' }}</span>
           </a-descriptions-item>
           <a-descriptions-item label="SHA256" :span="2">
-            <span class="mono-text hash-value">{{ currentFile.sha256 || '等待分析...' }}</span>
+            <span class="mono-text hash-value">{{ currentFile.sha256 || '...' }}</span>
           </a-descriptions-item>
         </a-descriptions>
 
         <!-- 统计信息 -->
-        <a-divider orientation="left">检测统计</a-divider>
+        <a-divider orientation="left">{{ t('virustotal.detectionStats') }}</a-divider>
         <div class="stats-container" v-if="currentFile.stats">
           <div class="stat-item stat-malicious">
             <div class="stat-count">{{ currentFile.stats.malicious || 0 }}</div>
-            <div class="stat-label">恶意</div>
+            <div class="stat-label">{{ t('virustotal.malicious') }}</div>
           </div>
           <div class="stat-item stat-suspicious">
             <div class="stat-count">{{ currentFile.stats.suspicious || 0 }}</div>
-            <div class="stat-label">可疑</div>
+            <div class="stat-label">{{ t('virustotal.suspicious') }}</div>
           </div>
           <div class="stat-item stat-harmless">
             <div class="stat-count">{{ currentFile.stats.harmless || 0 }}</div>
-            <div class="stat-label">安全</div>
+            <div class="stat-label">{{ t('virustotal.harmless') }}</div>
           </div>
           <div class="stat-item stat-undetected">
             <div class="stat-count">{{ currentFile.stats.undetected || 0 }}</div>
-            <div class="stat-label">未检出</div>
+            <div class="stat-label">{{ t('virustotal.undetected') }}</div>
           </div>
           <div class="stat-item stat-unsupported">
             <div class="stat-count">{{ currentFile.stats.typeUnsupported || 0 }}</div>
-            <div class="stat-label">不支持</div>
+            <div class="stat-label">{{ t('virustotal.unsupported') }}</div>
           </div>
           <div class="stat-item stat-timeout">
             <div class="stat-count">{{ currentFile.stats.timeout || 0 }}</div>
-            <div class="stat-label">超时</div>
+            <div class="stat-label">{{ t('virustotal.timeout') }}</div>
           </div>
           <div class="stat-item stat-failure">
             <div class="stat-count">{{ currentFile.stats.failure || 0 }}</div>
-            <div class="stat-label">失败</div>
+            <div class="stat-label">{{ t('virustotal.failure') }}</div>
           </div>
         </div>
 
         <!-- 检测结果 -->
         <a-divider orientation="left">
-          检测结果
+          {{ t('virustotal.detectionResults') }}
           <span class="result-count" v-if="currentFile.results">
-            (共 {{ currentFile.results.length }} 个引擎)
+            ({{ t('virustotal.enginesTotal', { count: currentFile.results.length }) }})
           </span>
         </a-divider>
 
         <!-- 分类筛选 -->
         <div class="filter-section" v-if="currentFile.results && currentFile.results.length > 0">
           <a-radio-group v-model:value="fileResultFilter" button-style="solid" size="small">
-            <a-radio-button value="all">全部</a-radio-button>
-            <a-radio-button value="malicious">恶意</a-radio-button>
-            <a-radio-button value="suspicious">可疑</a-radio-button>
-            <a-radio-button value="harmless">安全</a-radio-button>
-            <a-radio-button value="undetected">未检出</a-radio-button>
-            <a-radio-button value="type-unsupported">不支持</a-radio-button>
+            <a-radio-button value="all">{{ t('virustotal.filter.all') }}</a-radio-button>
+            <a-radio-button value="malicious">{{ t('virustotal.filter.malicious') }}</a-radio-button>
+            <a-radio-button value="suspicious">{{ t('virustotal.filter.suspicious') }}</a-radio-button>
+            <a-radio-button value="harmless">{{ t('virustotal.filter.safe') }}</a-radio-button>
+            <a-radio-button value="undetected">{{ t('virustotal.undetected') }}</a-radio-button>
+            <a-radio-button value="type-unsupported">{{ t('virustotal.unsupported') }}</a-radio-button>
           </a-radio-group>
         </div>
 
@@ -383,10 +383,10 @@
           >
             <template #title>
               <div class="result-tooltip">
-                <div><strong>引擎:</strong> {{ result.engine }}</div>
-                <div><strong>分类:</strong> {{ getCategoryText(result.category) }}</div>
-                <div><strong>结果:</strong> {{ result.result || '无' }}</div>
-                <div><strong>方法:</strong> {{ result.method || '未知' }}</div>
+                <div><strong>Engine:</strong> {{ result.engine }}</div>
+                <div><strong>Category:</strong> {{ getCategoryText(result.category) }}</div>
+                <div><strong>Result:</strong> {{ result.result || '-' }}</div>
+                <div><strong>Method:</strong> {{ result.method || '-' }}</div>
               </div>
             </template>
             <a-tag
@@ -397,7 +397,7 @@
             </a-tag>
           </a-tooltip>
         </div>
-        <a-empty v-else description="暂无检测结果" />
+        <a-empty v-else :description="t('virustotal.noResults')" />
       </div>
     </a-modal>
   </div>
@@ -410,10 +410,12 @@ import {
   FolderFilled,
 } from '@ant-design/icons-vue';
 import { h, onMounted, onUnmounted, ref, reactive, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import { VTService } from "../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt";
 import { useSettingsStore } from '@/stores/settings';
 
+const { t } = useI18n();
 const settingsStore = useSettingsStore();
 const loading = ref(false);
 const createModalVisible = ref(false);
@@ -443,37 +445,37 @@ let pollingTimer: ReturnType<typeof setInterval> | null = null;
 
 const columns = [
   {
-    title: '任务类型',
+    title: t('virustotal.taskType'),
     dataIndex: 'taskType',
     key: 'taskType',
     width: 100
   },
   {
-    title: '总文件数',
+    title: t('virustotal.totalFiles'),
     dataIndex: 'totalFiles',
     key: 'totalFiles',
     width: 100
   },
   {
-    title: '任务状态',
+    title: t('virustotal.taskStatus'),
     dataIndex: 'status',
     key: 'status',
     width: 130
   },
   {
-    title: '检出情况',
+    title: t('virustotal.detectionStatus'),
     dataIndex: 'detectionRate',
     key: 'detectionRate',
     width: 120
   },
   {
-    title: '扫描时间',
+    title: t('virustotal.scanTime'),
     dataIndex: 'scanTime',
     key: 'scanTime',
     width: 180
   },
   {
-    title: '操作',
+    title: t('virustotal.actions'),
     key: 'action',
     width: 200
   }
@@ -481,31 +483,31 @@ const columns = [
 
 const fileColumns = [
   {
-    title: '文件名',
+    title: t('virustotal.fileInfo'),
     dataIndex: 'fileName',
     key: 'fileName',
     ellipsis: true
   },
   {
-    title: '大小',
+    title: 'Size',
     dataIndex: 'fileSize',
     key: 'fileSize',
     width: 100
   },
   {
-    title: '状态',
+    title: t('virustotal.taskStatus'),
     dataIndex: 'status',
     key: 'status',
     width: 100
   },
   {
-    title: '检出率',
+    title: t('virustotal.detectionRate'),
     dataIndex: 'detectionRate',
     key: 'detectionRate',
     width: 150
   },
   {
-    title: '操作',
+    title: t('virustotal.actions'),
     key: 'action',
     width: 100
   }
@@ -577,11 +579,11 @@ const getCategoryColor = (category: string): string => {
 // 获取分类文本
 const getCategoryText = (category: string): string => {
   const textMap: Record<string, string> = {
-    'malicious': '恶意',
-    'suspicious': '可疑',
-    'harmless': '安全',
-    'undetected': '未检出',
-    'type-unsupported': '不支持'
+    'malicious': t('virustotal.malicious'),
+    'suspicious': t('virustotal.suspicious'),
+    'harmless': t('virustotal.harmless'),
+    'undetected': t('virustotal.undetected'),
+    'type-unsupported': t('virustotal.unsupported')
   };
   return textMap[category] || category;
 };
@@ -601,18 +603,18 @@ const getFileStatusColor = (status: string): string => {
 // 获取文件状态文本
 const getFileStatusText = (status: string): string => {
   const textMap: Record<string, string> = {
-    pending: '等待中',
-    queued: '排队中',
-    completed: '已完成',
-    failed: '失败',
-    timeout: '超时'
+    pending: t('virustotal.statusPending'),
+    queued: t('virustotal.statusQueued'),
+    completed: t('virustotal.statusCompleted'),
+    failed: t('virustotal.statusFailed'),
+    timeout: t('virustotal.timeout')
   };
   return textMap[status] || status;
 };
 
 const openCreateTaskModal = () => {
   if (!settingsStore.vtApiKey) {
-    message.warning('请先在全局设置中配置 VirusTotal API Key');
+    message.warning(t('settings.apiKeyNotConfiguredDesc'));
     return;
   }
   formState.filePath = '';
@@ -626,7 +628,7 @@ const chooseFile = async () => {
     formState.filePath = await VTService.OpenFileDialog();
   } catch (error) {
     console.error("Failed to open file dialog:", error);
-    message.error('选择文件失败');
+    message.error(t('virustotal.selectFileFailed'));
   }
 };
 
@@ -635,23 +637,23 @@ const chooseDirectory = async () => {
     formState.directoryPath = await VTService.OpenFileDialogs();
   } catch (error) {
     console.error("Failed to open directory dialog:", error);
-    message.error('选择目录失败');
+    message.error(t('virustotal.selectDirectoryFailed'));
   }
 };
 
 const createTask = async () => {
   if (!settingsStore.vtApiKey) {
-    message.error('请先配置 API Key');
+    message.error(t('virustotal.pleaseConfigApiKey'));
     return;
   }
 
   if (formState.scanType === 'file' && !formState.filePath) {
-    message.error('请选择文件');
+    message.error(t('virustotal.pleaseSelectFile'));
     return;
   }
 
   if (formState.scanType === 'directory' && !formState.directoryPath) {
-    message.error('请选择目录');
+    message.error(t('virustotal.pleaseSelectDirectory'));
     return;
   }
 
@@ -662,14 +664,14 @@ const createTask = async () => {
     if (formState.scanType === 'file') {
       const task = await VTService.CreateScanTask(formState.filePath);
       if (task) {
-        message.success('任务创建成功，正在上传文件...');
+        message.success(t('virustotal.taskCreated'));
         tasks.value.unshift(task);
         startPolling(task.id);
       }
     } else {
       const task = await VTService.CreateDirectoryScanTask(formState.directoryPath);
       if (task) {
-        message.success(`目录扫描任务创建成功，共 ${task.totalFiles} 个文件`);
+        message.success(t('virustotal.directoryTaskCreated', { count: task.totalFiles }));
         tasks.value.unshift(task);
         startPolling(task.id);
       }
@@ -678,7 +680,7 @@ const createTask = async () => {
     createModalVisible.value = false;
   } catch (error: any) {
     console.error('Failed to create task:', error);
-    message.error('任务创建失败: ' + (error.message || '未知错误'));
+    message.error(t('virustotal.taskCreateFailed') + ': ' + (error.message || ''));
   } finally {
     createLoading.value = false;
   }
@@ -701,7 +703,7 @@ const loadTasks = async () => {
     });
   } catch (error) {
     console.error('Failed to load tasks:', error);
-    message.error('加载任务列表失败');
+    message.error(t('virustotal.loadTaskListFailed'));
   } finally {
     loading.value = false;
   }
@@ -728,7 +730,7 @@ const loadTaskFiles = async (taskId: string) => {
     taskFiles.value = files || [];
   } catch (error) {
     console.error('Failed to load task files:', error);
-    message.error('加载文件列表失败');
+    message.error(t('virustotal.loadFileListFailed'));
   } finally {
     filesLoading.value = false;
   }
@@ -742,13 +744,13 @@ const viewFileDetail = async (file: any) => {
     fileDetailModalVisible.value = true;
   } catch (error) {
     console.error('Failed to get file detail:', error);
-    message.error('获取文件详情失败');
+    message.error(t('virustotal.getFileDetailFailed'));
   }
 };
 
 const refreshFileStatus = async (file: any) => {
   if (!settingsStore.vtApiKey) {
-    message.warning('请先配置 API Key');
+    message.warning(t('virustotal.pleaseConfigApiKey'));
     return;
   }
 
@@ -771,7 +773,7 @@ const refreshFileStatus = async (file: any) => {
     }
   } catch (error: any) {
     console.error('Failed to refresh file status:', error);
-    message.error('刷新状态失败');
+    message.error(t('virustotal.refreshFailed'));
   } finally {
     file.refreshing = false;
   }
@@ -779,7 +781,7 @@ const refreshFileStatus = async (file: any) => {
 
 const refreshTaskStatus = async (task: any) => {
   if (!settingsStore.vtApiKey) {
-    message.warning('请先配置 API Key');
+    message.warning(t('virustotal.pleaseConfigApiKey'));
     return;
   }
 
@@ -797,7 +799,7 @@ const refreshTaskStatus = async (task: any) => {
 
       if (updatedTask?.status === 'completed') {
         stopPolling(task.id);
-        message.success('分析完成');
+        message.success(t('virustotal.statusCompleted'));
       }
 
       if (currentTask.value?.id === task.id) {
@@ -816,13 +818,13 @@ const refreshTaskStatus = async (task: any) => {
         }
         if (updatedTask.status === 'completed') {
           stopPolling(task.id);
-          message.success('目录扫描完成');
+          message.success(t('virustotal.statusCompleted'));
         }
       }
     }
   } catch (error: any) {
     console.error('Failed to refresh task status:', error);
-    message.error('刷新状态失败: ' + (error.message || '未知错误'));
+    message.error(t('virustotal.refreshFailed') + ': ' + (error.message || ''));
   } finally {
     task.refreshing = false;
   }
@@ -833,10 +835,10 @@ const deleteTask = async (id: string) => {
     await VTService.DeleteTask(id);
     tasks.value = tasks.value.filter(t => t.id !== id);
     stopPolling(id);
-    message.success('任务已删除');
+    message.success(t('virustotal.deleteSuccess'));
   } catch (error: any) {
     console.error('Failed to delete task:', error);
-    message.error('删除失败: ' + (error.message || '未知错误'));
+    message.error(t('virustotal.deleteFailed') + ': ' + (error.message || ''));
   }
 };
 
@@ -884,12 +886,12 @@ const getStatusColor = (status: string) => {
 
 const getStatusText = (status: string) => {
   const textMap: Record<string, string> = {
-    pending: '等待中',
-    queued: '排队中',
-    'in-progress': '分析中',
-    scanning: '扫描中',
-    completed: '已完成',
-    failed: '失败'
+    pending: t('virustotal.statusPending'),
+    queued: t('virustotal.statusQueued'),
+    'in-progress': t('virustotal.statusAnalyzing'),
+    scanning: t('virustotal.statusScanning'),
+    completed: t('virustotal.statusCompleted'),
+    failed: t('virustotal.statusFailed')
   };
   return textMap[status] || status;
 };

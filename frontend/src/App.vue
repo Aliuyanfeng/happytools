@@ -11,13 +11,14 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { HomeOutlined } from '@ant-design/icons-vue';
 import TitleBar from './components/TitleBar.vue';
 import { useAppStore } from './stores/app';
 import { useSettingsStore } from './stores/settings';
 import {Events} from "@wailsio/runtime";
 
-
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
@@ -71,7 +72,7 @@ onMounted(()=>{
       </a-layout-content>
       <a-layout-footer class="app-footer">
         <!-- <div class="runtime-info">版本: v0.0.1</div> -->
-        <div class="copyright">上次使用: {{ appStore.lastUsedTime }}</div>
+        <div class="copyright">{{ t('app.lastUsed') }}: {{ appStore.lastUsedTime }}</div>
       </a-layout-footer>
     </a-layout>
   </a-layout>
