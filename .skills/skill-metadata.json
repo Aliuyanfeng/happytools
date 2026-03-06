@@ -1,6 +1,29 @@
 {
   "skills": [
     {
+      "name": "wails3-development",
+      "displayName": "Wails3 开发完整指南",
+      "description": "提供 HappyTools 项目（基于 Wails v3 + Vue 3）的完整开发指南，包括技术栈规范、项目结构、开发流程、最佳实践和常见问题解决方案",
+      "version": "1.0.0",
+      "author": "HappyTools Team",
+      "tags": ["wails", "vue", "go", "typescript", "development", "guide", "best-practices"],
+      "triggers": [
+        "wails3开发",
+        "wails开发指南",
+        "项目开发规范",
+        "技术栈说明",
+        "开发流程",
+        "最佳实践",
+        "项目结构",
+        "前后端通信"
+      ],
+      "filePath": "wails3-development.md",
+      "enabled": true,
+      "priority": 0,
+      "createdAt": "2026-03-06",
+      "updatedAt": "2026-03-06"
+    },
+    {
       "name": "add-feature-module",
       "displayName": "添加新功能模块",
       "description": "在 HappyTools 项目中快速添加新的功能模块，包括后端服务、数据存储、前端页面和路由配置",

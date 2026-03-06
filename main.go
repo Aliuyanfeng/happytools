@@ -2,7 +2,7 @@
  * @Author: LiuYanFeng
  * @Date: 2025-07-03 17:16:49
  * @LastEditors: LiuYanFeng
- * @LastEditTime: 2026-02-13 12:16:03
+ * @LastEditTime: 2026-03-06 16:51:00
  * @FilePath: \happytools\main.go
  * @Description: 像珍惜礼物一样珍惜今天
  *
@@ -95,29 +95,6 @@ func main() {
 	app.RegisterService(application.NewService(encryption.NewEncryptionService()))
 	app.RegisterService(application.NewService(clipboard.NewClipboardService(app)))
 
-	systray := app.SystemTray.New()
-	systray.SetLabel("HappyTools")
-	systray.SetTooltip("HappyTools工具")
-
-	// Create a window
-	window := app.Window.New()
-
-	// Attach the window to the system tray
-	systray.AttachWindow(window)
-
-	// Optional: Set window offset from tray icon
-	systray.WindowOffset(10)
-
-	// Optional: Set debounce time for window show/hide
-	systray.WindowDebounce(200 * time.Millisecond)
-
-	// Create tray menu with only Quit option
-	menu := application.NewMenu()
-	menu.Add("退出 HappyTools").OnClick(func(ctx *application.Context) {
-		app.Quit()
-	})
-
-	systray.SetMenu(menu)
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
 	// 'Mac' options tailor the window when running on macOS.
@@ -146,6 +123,29 @@ func main() {
 	})
 
 	mainWindow.SetAlwaysOnTop(false)
+
+	systray := app.SystemTray.New()
+	systray.SetLabel("HappyTools")
+	systray.SetTooltip("HappyTools工具")
+
+	systray.OnClick(func() {
+		if mainWindow.IsVisible() {
+			mainWindow.Hide()
+		} else {
+			mainWindow.Show()
+		}
+	})
+
+	// Optional: Set debounce time for window show/hide
+	systray.WindowDebounce(200 * time.Millisecond)
+
+	// Create tray menu with only Quit option
+	menu := application.NewMenu()
+	menu.Add("退出 HappyTools").OnClick(func(ctx *application.Context) {
+		app.Quit()
+	})
+
+	systray.SetMenu(menu)
 
 	// 初始化应用设置服务
 	appSettingsService := appsettings.NewAppSettingsService()
