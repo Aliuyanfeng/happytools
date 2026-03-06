@@ -9,8 +9,11 @@
       <button class="title-btn settings" :title="t('settings.title')" @click="openSettings">
         <SettingOutlined class="icon" />
       </button>
+      <button class="title-btn pin" :class="{ active: isAlwaysOnTop }" :title="isAlwaysOnTop ? t('app.unpin') : t('app.pin')" @click="toggleAlwaysOnTop">
+        <PushpinOutlined class="icon" />
+      </button>
       <button class="title-btn minimize" :title="t('app.minimize')" @click="minimize"><span class="icon">−</span></button>
-      <button class="title-btn maximize" :title="t('app.maximize')" @click="toggleMaximize"><span class="icon">▢</span></button>
+      <!-- <button class="title-btn maximize" :title="t('app.maximize')" @click="toggleMaximize"><span class="icon">▢</span></button> -->
       <button class="title-btn close" :title="t('app.close')" @click="close"><span class="icon">✕</span></button>
     </div>
 
@@ -23,13 +26,14 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Window } from '@wailsio/runtime'
-import { SettingOutlined } from '@ant-design/icons-vue'
+import { SettingOutlined, PushpinOutlined } from '@ant-design/icons-vue'
 import SettingsModal from './SettingsModal.vue'
 import { useSettingsStore } from '../stores/settings'
 
 const { t } = useI18n()
 const settingsStore = useSettingsStore()
 const settingsVisible = ref(false)
+const isAlwaysOnTop = ref(false)
 
 function minimize() {
   Window.Minimise()
@@ -50,6 +54,11 @@ function close() {
 
 function openSettings() {
   settingsVisible.value = true
+}
+
+async function toggleAlwaysOnTop() {
+  isAlwaysOnTop.value = !isAlwaysOnTop.value
+  await Window.SetAlwaysOnTop(isAlwaysOnTop.value)
 }
 
 // 为了兼容你给出的用法（直接使用 document.querySelector），同时在组件挂载时绑定选择器事件
@@ -153,6 +162,17 @@ onMounted(() => {
 /* 设置按钮特殊样式 */
 .title-btn.settings:hover {
   background: rgba(24, 144, 255, 0.8);
+  color: #ffffff;
+}
+
+/* 置顶按钮特殊样式 */
+.title-btn.pin:hover {
+  background: rgba(250, 173, 20, 0.8);
+  color: #ffffff;
+}
+
+.title-btn.pin.active {
+  background: rgba(250, 173, 20, 0.9);
   color: #ffffff;
 }
 

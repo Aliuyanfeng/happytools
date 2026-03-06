@@ -90,13 +90,13 @@ func main() {
 	app.RegisterService(application.NewService(virusTotal.NewVTService(app)))
 	app.RegisterService(application.NewService(network.NewFileTransferService(app)))
 	app.RegisterService(application.NewService(network.NewTCPUDPService(app)))
+	app.RegisterService(application.NewService(network.NewDNSService()))
 	app.RegisterService(application.NewService(unitconverter.NewUnitConverterService()))
 	app.RegisterService(application.NewService(encryption.NewEncryptionService()))
 	app.RegisterService(application.NewService(clipboard.NewClipboardService(app)))
 
 	systray := app.SystemTray.New()
 	systray.SetLabel("HappyTools")
-	//systray.SetIcon()
 	systray.SetTooltip("HappyTools工具")
 
 	// Create a window
@@ -111,18 +111,13 @@ func main() {
 	// Optional: Set debounce time for window show/hide
 	systray.WindowDebounce(200 * time.Millisecond)
 
+	// Create tray menu with only Quit option
 	menu := application.NewMenu()
-	menu.Add("Open").OnClick(func(ctx *application.Context) {
-		app.Show()
-	})
-	menu.Add("Quit").OnClick(func(ctx *application.Context) {
+	menu.Add("退出 HappyTools").OnClick(func(ctx *application.Context) {
 		app.Quit()
 	})
 
 	systray.SetMenu(menu)
-	menu.AddRole(application.AppMenu)
-	menu.AddRole(application.EditMenu)
-	menu.AddRole(application.WindowMenu)
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
 	// 'Mac' options tailor the window when running on macOS.

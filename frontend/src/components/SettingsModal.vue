@@ -20,6 +20,14 @@
         </div>
         <div
           class="sidebar-item"
+          :class="{ active: activeTab === 'network' }"
+          @click="activeTab = 'network'"
+        >
+          <WifiOutlined class="sidebar-icon" />
+          <span>{{ t('settings.network') }}</span>
+        </div>
+        <div
+          class="sidebar-item"
           :class="{ active: activeTab === 'virustotal' }"
           @click="activeTab = 'virustotal'"
         >
@@ -167,6 +175,31 @@
             </a-form-item>
           </a-form>
         </div>
+
+        <!-- 网络设置 -->
+        <div v-if="activeTab === 'network'" class="settings-panel">
+          <a-form layout="vertical">
+            <a-divider>{{ t('settings.dnsCache') }}</a-divider>
+
+            <a-form-item :label="t('settings.dnsCache')">
+              <div class="dns-section">
+                <p class="dns-description">{{ t('settings.dnsCacheDesc') }}</p>
+                <a-button 
+                  type="primary" 
+                  :loading="dnsFlushing" 
+                  @click="flushDNS"
+                >
+                  {{ dnsFlushing ? t('settings.dnsFlushing') : t('settings.flushDNS') }}
+                </a-button>
+                <div v-if="dnsResult" class="dns-result" :class="{ 'dns-success': dnsResult.success, 'dns-error': !dnsResult.success }">
+                  <p>{{ dnsResult.message }}</p>
+                  <p v-if="dnsResult.adminNeeded" class="dns-warning">{{ t('settings.dnsAdminNeeded') }}</p>
+                  <pre v-if="dnsResult.output">{{ dnsResult.output }}</pre>
+                </div>
+              </div>
+            </a-form-item>
+          </a-form>
+        </div>
       </div>
     </div>
   </a-modal>
@@ -185,10 +218,12 @@ import {
   LinkOutlined,
   GlobalOutlined,
   LogoutOutlined,
-  EyeInvisibleOutlined
+  EyeInvisibleOutlined,
+  WifiOutlined
 } from '@ant-design/icons-vue'
 import { useSettingsStore } from '../stores/settings'
 import { VTService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt'
+import { DNSService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/network/index'
 
 const { t } = useI18n()
 
@@ -204,6 +239,15 @@ const settingsStore = useSettingsStore()
 const activeTab = ref('basic')
 
 const visible = ref(props.open)
+
+// DNS相关状态
+const dnsFlushing = ref(false)
+const dnsResult = ref<{
+  success: boolean;
+  message: string;
+  output: string;
+  adminNeeded: boolean;
+} | null>(null)
 
 watch(() => props.open, (newVal) => {
   visible.value = newVal
@@ -243,6 +287,34 @@ async function handleConcurrencyChange(value: number) {
   } catch (error) {
     console.error('Failed to save concurrency:', error)
     message.error(t('common.failed'))
+  }
+}
+
+// 刷新DNS缓存
+async function flushDNS() {
+  dnsFlushing.value = true
+  dnsResult.value = null
+  
+  try {
+    const result = await DNSService.FlushDNS()
+    dnsResult.value = result
+    
+    if (result && result.success) {
+      message.success(t('settings.dnsFlushSuccess'))
+    } else if (result) {
+      message.error(result.message)
+    }
+  } catch (error) {
+    console.error('刷新DNS失败:', error)
+    dnsResult.value = {
+      success: false,
+      message: t('settings.dnsFlushFailed'),
+      output: String(error),
+      adminNeeded: false
+    }
+    message.error(t('settings.dnsFlushFailed'))
+  } finally {
+    dnsFlushing.value = false
   }
 }
 </script>
@@ -354,5 +426,74 @@ async function handleConcurrencyChange(value: number) {
   background: #1a2a3a;
   border-color: #1e3a5f;
   color: #69b1ff;
+}
+
+/* DNS 设置样式 */
+.dns-section {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.dns-description {
+  color: #666;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.dns-result {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.dns-success {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+
+.dns-error {
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+}
+
+.dns-warning {
+  color: #fa8c16;
+  font-weight: 500;
+}
+
+.dns-result pre {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+[data-theme="dark"] .dns-section {
+  background: #1f1f1f;
+}
+
+[data-theme="dark"] .dns-description {
+  color: #a6a6a6;
+}
+
+[data-theme="dark"] .dns-success {
+  background-color: #162312;
+  border-color: #274916;
+}
+
+[data-theme="dark"] .dns-error {
+  background-color: #2a1215;
+  border-color: #58181c;
+}
+
+[data-theme="dark"] .dns-result pre {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 </style>
