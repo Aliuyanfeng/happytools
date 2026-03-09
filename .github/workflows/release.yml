@@ -65,6 +65,7 @@ jobs:
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
 
       - name: Build & Package
+          shell: bash
         run: |
           export PATH="/c/Program Files (x86)/NSIS:$PATH"
           which makensis && echo "makensis found" || echo "makensis NOT found"
