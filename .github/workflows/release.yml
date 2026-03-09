@@ -69,7 +69,7 @@ jobs:
         run: |
           export PATH="/c/Program Files (x86)/NSIS:$PATH"
           which makensis && echo "makensis found" || echo "makensis NOT found"
-          makensis -version || true
+          makensis /VERSION || true
           wails3 task ${{ matrix.build-task }}
         env:
           CGO_ENABLED: ${{ runner.os == 'Windows' && '0' || '1' }}
@@ -81,6 +81,32 @@ jobs:
           brew install create-dmg
           create-dmg --volname "HappyTools" --window-pos 200 120 --window-size 800 400 --icon-size 100 --app-drop-link 600 185 "bin/HappyTools.dmg" "bin/HappyTools.app"
         continue-on-error: true
+
+      # 重命名安装程序（包含版本号和平台信息）
+      - name: Rename Windows Installer
+        if: runner.os == 'Windows'
+        working-directory: ./bin
+        run: |
+          # 获取版本号
+          VERSION="${GITHUB_REF#refs/tags/}"
+          # 查找并重命名安装程序
+          if (Get-ChildItem -Filter "*-installer.exe" | Select-Object -First 1) {
+            $oldFile = Get-ChildItem -Filter "*-installer.exe" | Select-Object -First 1
+            $newName = "HappyTools_Setup_${VERSION}_windows_amd64.exe"
+            Rename-Item -Path $oldFile.Name -NewName $newName
+            Write-Host "Renamed: $($oldFile.Name) -> $newName"
+          }
+        shell: pwsh
+
+      - name: Rename macOS DMG
+        if: runner.os == 'macOS'
+        working-directory: ./bin
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          if [ -f "HappyTools.dmg" ]; then
+            mv "HappyTools.dmg" "HappyTools_${VERSION}_macos_universal.dmg"
+            echo "Renamed: HappyTools.dmg -> HappyTools_${VERSION}_macos_universal.dmg"
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -169,7 +195,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
-          name: HappyTools ${{ steps.get_version.outputs.VERSION }}
+          name: ${{ steps.get_version.outputs.VERSION }}
           body_path: release_notes.md
           generate_release_notes: true
           draft: false
