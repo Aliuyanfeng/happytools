@@ -55,9 +55,20 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       # Windows 特定依赖
-      - name: Install Windows Dependencies
+      - name: Install Windows Dependencies (Windows)
         if: runner.os == 'Windows'
-        run: choco install nsis -y
+        run: |
+          choco install nsis -y
+          # 查找 NSIS 安装路径并添加到 PATH
+          $nsisPath = Get-ChildItem "C:\Program Files*" -Filter "NSIS" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($nsisPath) {
+            echo "$($nsisPath.FullName)" >> $env:GITHUB_PATH
+            Write-Host "Added NSIS to PATH: $($nsisPath.FullName)"
+          } else {
+            Write-Host "NSIS not found in Program Files"
+            exit 1
+          }
+        shell: pwsh
 
       - name: Install Wails3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
