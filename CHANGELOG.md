@@ -2,7 +2,7 @@
 <a name="v1.1.0"></a>
 ## [v1.1.0](https://github.com/Aliuyanfeng/happytools/compare/v1.0.9...v1.1.0)
 
-> 0001-01-01
+> 2026-03-09
 
 
 <a name="v1.0.9"></a>

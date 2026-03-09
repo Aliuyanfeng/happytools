@@ -185,24 +185,76 @@ jobs:
           echo "📦 Release Assets:"
           ls -lh release-assets/
 
+      - name: Extract Changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          VERSION_NO_V="${VERSION#v}"
+
+          # 从 CHANGELOG.md 提取当前版本的更新日志
+          if [ -f CHANGELOG.md ]; then
+            echo "📝 从 CHANGELOG.md 提取版本 $VERSION 的更新日志"
+
+            # 尝试多种格式匹配
+            # 格式 1: ## [v1.0.0] 或 ## [1.0.0]
+            CHANGELOG=$(sed -n "/^## \[${VERSION}\]/,/^## \[/p" CHANGELOG.md | sed '$d')
+
+            if [ -z "$CHANGELOG" ]; then
+              # 格式 2: ## v1.0.0 或 ## 1.0.0
+              CHANGELOG=$(sed -n "/^## ${VERSION}/,/^## /p" CHANGELOG.md | sed '$d')
+            fi
+
+            if [ -z "$CHANGELOG" ]; then
+              # 格式 3: 不带 v 前缀
+              CHANGELOG=$(sed -n "/^## \[${VERSION_NO_V}\]/,/^## \[/p" CHANGELOG.md | sed '$d')
+            fi
+
+            if [ -z "$CHANGELOG" ]; then
+              # 格式 4: ## 1.0.0
+              CHANGELOG=$(sed -n "/^## ${VERSION_NO_V}/,/^## /p" CHANGELOG.md | sed '$d')
+            fi
+
+            if [ -n "$CHANGELOG" ]; then
+              echo "$CHANGELOG" > changelog_content.md
+              echo "✅ 成功提取 CHANGELOG 内容"
+            else
+              echo "⚠️ 未找到版本 $VERSION 的 CHANGELOG 内容"
+              echo "" > changelog_content.md
+            fi
+          else
+            echo "⚠️ CHANGELOG.md 文件不存在"
+            echo "" > changelog_content.md
+          fi
+
       - name: Generate Release Notes
         id: release_notes
         run: |
-          cat << EOF > release_notes.md
-          ## HappyTools ${{ steps.get_version.outputs.VERSION }}
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          VERSION_NO_V="${VERSION#v}"
 
-          ### 新功能
-          - 跨平台桌面应用支持
-          - 基于 Wails v3 + Vue 3 构建
+          # 读取 CHANGELOG 内容
+          if [ -f changelog_content.md ] && [ -s changelog_content.md ]; then
+            CHANGELOG_CONTENT=$(cat changelog_content.md)
+          else
+            CHANGELOG_CONTENT="### 新功能
+- 跨平台桌面应用支持
+- 基于 Wails v3 + Vue 3 构建"
+          fi
+
+          # 生成完整的发布说明
+          cat << EOF > release_notes.md
+          ## HappyTools ${VERSION}
+
+          ${CHANGELOG_CONTENT}
 
           ### 下载说明
 
           #### Windows
-          - \`HappyTools-Setup.exe\` - Windows 安装程序 (推荐)
+          - \`HappyTools_${VERSION_NO_V}_windows_x64.exe\` - Windows 安装程序 (推荐)
 
           #### macOS
-          - \`HappyTools-macos.zip\` - macOS 应用程序包 (支持 Intel 和 Apple Silicon)
-          - \`HappyTools.dmg\` - macOS DMG 镜像 (可选)
+          - \`HappyTools_${VERSION_NO_V}_macos_universal.dmg\` - macOS DMG 镜像 (支持 Intel 和 Apple Silicon)
+          - \`HappyTools-macos.zip\` - macOS 应用程序包
 
           ### 系统要求
           - **Windows**: Windows 10/11 (需要 WebView2 运行时)
@@ -212,6 +264,9 @@ jobs:
 
           **完整更新日志**: https://github.com/${{ github.repository }}/compare/${{ steps.get_version.outputs.VERSION }}...HEAD
           EOF
+
+          echo "📄 发布说明已生成:"
+          cat release_notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
