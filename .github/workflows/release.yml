@@ -41,6 +41,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 标准化版本号
+      - name: Normalise version
+        id: normalise_version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          # 移除 v 前缀
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # 标准化平台标签
+      - name: Normalise  platform tag
+        id: normalise_platform
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "tag=windows_x64" >> "$GITHUB_OUTPUT"
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            echo "tag=macos_universal" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -87,12 +108,10 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ./bin
         run: |
-          # 获取版本号
-          VERSION="${GITHUB_REF#refs/tags/}"
           # 查找并重命名安装程序
           if (Get-ChildItem -Filter "*-installer.exe" | Select-Object -First 1) {
             $oldFile = Get-ChildItem -Filter "*-installer.exe" | Select-Object -First 1
-            $newName = "HappyTools_Setup_${VERSION}_windows_amd64.exe"
+            $newName = "HappyTools_Setup_${{ steps.normalise_version.outputs.version }}_${{ steps.normalise_platform.outputs.tag }}.exe"
             Rename-Item -Path $oldFile.Name -NewName $newName
             Write-Host "Renamed: $($oldFile.Name) -> $newName"
           }
@@ -102,10 +121,9 @@ jobs:
         if: runner.os == 'macOS'
         working-directory: ./bin
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
           if [ -f "HappyTools.dmg" ]; then
-            mv "HappyTools.dmg" "HappyTools_${VERSION}_macos_universal.dmg"
-            echo "Renamed: HappyTools.dmg -> HappyTools_${VERSION}_macos_universal.dmg"
+            mv "HappyTools.dmg" "HappyTools_${{ steps.normalise_version.outputs.version }}_${{ steps.normalise_platform.outputs.tag }}.dmg"
+            echo "Renamed: HappyTools.dmg -> HappyTools_${{ steps.normalise_version.outputs.version }}_${{ steps.normalise_platform.outputs.tag }}.dmg"
           fi
 
       - name: Upload Artifact
