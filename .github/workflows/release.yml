@@ -57,18 +57,9 @@ jobs:
       # Windows 特定依赖
       - name: Install Windows Dependencies (Windows)
         if: runner.os == 'Windows'
-        run: |
-          choco install nsis -y
-          # 查找 NSIS 安装路径并添加到 PATH
-          $nsisPath = Get-ChildItem "C:\Program Files*" -Filter "NSIS" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($nsisPath) {
-            echo "$($nsisPath.FullName)" >> $env:GITHUB_PATH
-            Write-Host "Added NSIS to PATH: $($nsisPath.FullName)"
-          } else {
-            Write-Host "NSIS not found in Program Files"
-            exit 1
-          }
-        shell: pwsh
+        uses: crazy-max/ghaction-chocolatey@v2
+        with:
+          args: install nsis -y
 
       - name: Install Wails3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
@@ -175,6 +166,7 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: HappyTools ${{ steps.get_version.outputs.VERSION }}
           body_path: release_notes.md
+          generate_release_notes: true
           draft: false
           prerelease: ${{ contains(steps.get_version.outputs.VERSION, '-') }}
           files: release-assets/*
