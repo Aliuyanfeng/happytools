@@ -55,7 +55,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       # Windows 特定依赖
-      - name: Install Windows Dependencies (Windows)
+      - name: Install Windows Dependencies NSIS (Windows)
         if: runner.os == 'Windows'
         uses: crazy-max/ghaction-chocolatey@v2
         with:
@@ -65,7 +65,13 @@ jobs:
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
 
       - name: Build & Package
-        run: wails3 task ${{ matrix.build-task }}
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            export PATH="/c/Program Files (x86)/NSIS:$PATH"
+            which makensis && echo "makensis found" || echo "makensis NOT found"
+            makensis -version || true
+          fi
+          wails3 task ${{ matrix.build-task }}
         env:
           CGO_ENABLED: ${{ runner.os == 'Windows' && '0' || '1' }}
 
