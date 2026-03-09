@@ -66,11 +66,9 @@ jobs:
 
       - name: Build & Package
         run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            export PATH="/c/Program Files (x86)/NSIS:$PATH"
-            which makensis && echo "makensis found" || echo "makensis NOT found"
-            makensis -version || true
-          fi
+          export PATH="/c/Program Files (x86)/NSIS:$PATH"
+          which makensis && echo "makensis found" || echo "makensis NOT found"
+          makensis -version || true
           wails3 task ${{ matrix.build-task }}
         env:
           CGO_ENABLED: ${{ runner.os == 'Windows' && '0' || '1' }}
