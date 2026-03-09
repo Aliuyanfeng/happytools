@@ -237,8 +237,8 @@ jobs:
             CHANGELOG_CONTENT=$(cat changelog_content.md)
           else
             CHANGELOG_CONTENT="### 新功能
-- 跨平台桌面应用支持
-- 基于 Wails v3 + Vue 3 构建"
+            - 跨平台桌面应用支持
+            - 基于 Wails v3 + Vue 3 构建"
           fi
 
           # 生成完整的发布说明
