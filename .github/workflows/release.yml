@@ -111,7 +111,7 @@ jobs:
           # 查找并重命名安装程序
           if (Get-ChildItem -Filter "*-installer.exe" | Select-Object -First 1) {
             $oldFile = Get-ChildItem -Filter "*-installer.exe" | Select-Object -First 1
-            $newName = "HappyTools_Setup_${{ steps.normalise_version.outputs.version }}_${{ steps.normalise_platform.outputs.tag }}.exe"
+            $newName = "HappyTools_${{ steps.normalise_version.outputs.version }}_${{ steps.normalise_platform.outputs.tag }}.exe"
             Rename-Item -Path $oldFile.Name -NewName $newName
             Write-Host "Renamed: $($oldFile.Name) -> $newName"
           }
@@ -163,9 +163,13 @@ jobs:
         run: |
           mkdir -p release-assets
 
-          # Windows
-          if ls artifacts/windows/*.exe 1> /dev/null 2>&1; then
-            cp artifacts/windows/*.exe release-assets/
+          # Windows - 只复制安装程序，排除可执行文件
+          if ls artifacts/windows/*-installer.exe 1> /dev/null 2>&1; then
+            cp artifacts/windows/*-installer.exe release-assets/
+          fi
+          # 或者使用重命名后的文件名模式
+          if ls artifacts/windows/HappyTools_*.exe 1> /dev/null 2>&1; then
+            cp artifacts/windows/HappyTools_*.exe release-assets/
           fi
 
           # macOS - Create ZIP for .app
