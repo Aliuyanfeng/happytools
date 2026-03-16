@@ -45,19 +45,34 @@
               <template #title>
                 <div class="flex items-center justify-between">
                   <span>🚀 网卡</span>
-                  <a-select
-                      ref="select"
-                      v-model:value="currentNetworkInterface"
-                      style="width: 100px"
-                      size="small"
-                      @focus="focus"
-                      @change="handleChange"
-                  >
-                    <a-select-option v-for="item in networkInterfaces" :key="item.name" :value="item.name">{{
-                        item.name
-                      }}
-                    </a-select-option>
-                  </a-select>
+                  <div class="flex items-center gap-2">
+                    <a-tooltip :title="isCurrentFavorite() ? '取消收藏' : '收藏当前网卡'">
+                      <a-button
+                          type="text"
+                          size="small"
+                          @click="isCurrentFavorite() ? handleUnfavorite() : handleFavorite()"
+                          :class="{'favorite-active': isCurrentFavorite()}"
+                      >
+                        <template #icon>
+                          <span v-if="isCurrentFavorite()">⭐</span>
+                          <span v-else>☆</span>
+                        </template>
+                      </a-button>
+                    </a-tooltip>
+                    <a-select
+                        ref="select"
+                        v-model:value="currentNetworkInterface"
+                        style="width: 100px"
+                        size="small"
+                        @focus="focus"
+                        @change="handleChange"
+                    >
+                      <a-select-option v-for="item in networkInterfaces" :key="item.name" :value="item.name">{{
+                          item.name
+                        }}
+                      </a-select-option>
+                    </a-select>
+                  </div>
                 </div>
               </template>
               <div class="h-28">
@@ -154,7 +169,9 @@ import {useRouter} from 'vue-router';
 import SettingsPanel from '@/components/SettingsPanel.vue';
 import {useSettingsStore} from '@/stores/settings';
 import {SysInfoService} from "../../bindings/github.com/Aliuyanfeng/happytools/backend/services/monitor";
+import {AppSettingsService} from "../../bindings/github.com/Aliuyanfeng/happytools/backend/services/appsettings";
 import {Events} from "@wailsio/runtime";
+import {message} from 'ant-design-vue';
 
 const router = useRouter();
 const settingsStore = useSettingsStore();
@@ -177,6 +194,7 @@ const hardwareInfo = reactive({ // 主机信息
 })
 const networkInterfaces = ref<any[] | undefined>([]); // 网卡信息
 const currentNetworkInterface = ref('') // 当前选中的网卡
+const favoriteNetworkInterface = ref('') // 收藏的网卡
 const settingsVisible = ref(false);
 const settings = reactive({
   fontFamily: '',
@@ -186,8 +204,19 @@ const settings = reactive({
 
 const systemInfoInterval = ref<number | null>(null)
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
   console.log('mount');
+
+  // 加载收藏的网卡
+  try {
+    const favorite = await AppSettingsService.GetFavoriteNetworkInterface();
+    if (favorite) {
+      favoriteNetworkInterface.value = favorite;
+    }
+  } catch (error) {
+    console.error('加载收藏网卡失败:', error);
+  }
+
   Events.On('monitor:sysInfo', (event) => {
     console.log(event.data);
     // cpu信息
@@ -210,7 +239,12 @@ onMounted(() => {
     // 网卡信息
     networkInterfaces.value = event.data.network_interfaces
     if (currentNetworkInterface.value === '') {
-      currentNetworkInterface.value = networkInterfaces.value?.[0]?.name
+      // 优先使用收藏的网卡,如果收藏的网卡存在且可用
+      if (favoriteNetworkInterface.value && networkInterfaces.value?.some(n => n.name === favoriteNetworkInterface.value)) {
+        currentNetworkInterface.value = favoriteNetworkInterface.value;
+      } else {
+        currentNetworkInterface.value = networkInterfaces.value?.[0]?.name
+      }
     }
   });
 });
@@ -247,6 +281,40 @@ const focus = () => {
 // 选择网卡
 const handleChange = (value: string) => {
   console.log(`selected ${value}`);
+};
+
+// 收藏网卡
+const handleFavorite = async () => {
+  if (!currentNetworkInterface.value) {
+    message.warning('请先选择一个网卡');
+    return;
+  }
+
+  try {
+    await AppSettingsService.SetFavoriteNetworkInterface(currentNetworkInterface.value);
+    favoriteNetworkInterface.value = currentNetworkInterface.value;
+    message.success(`已收藏网卡: ${currentNetworkInterface.value}`);
+  } catch (error) {
+    message.error('收藏失败');
+    console.error('收藏网卡失败:', error);
+  }
+};
+
+// 取消收藏
+const handleUnfavorite = async () => {
+  try {
+    await AppSettingsService.SetFavoriteNetworkInterface('');
+    favoriteNetworkInterface.value = '';
+    message.success('已取消收藏');
+  } catch (error) {
+    message.error('取消收藏失败');
+    console.error('取消收藏失败:', error);
+  }
+};
+
+// 判断当前网卡是否已收藏
+const isCurrentFavorite = () => {
+  return currentNetworkInterface.value === favoriteNetworkInterface.value && favoriteNetworkInterface.value !== '';
 };
 
 // 获取系统信息
@@ -352,5 +420,9 @@ const formatBytes = (bytes: number) => {
   background-color: #fff;
   color: #999;
   border-radius: 50%;
+}
+
+.favorite-active {
+  color: #faad14;
 }
 </style>

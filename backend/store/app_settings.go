@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	LastUsedTimeKey = "last_used_time"
+	LastUsedTimeKey          = "last_used_time"
+	FavoriteNetworkInterface = "favorite_network_interface"
 )
 
 // GetLastUsedTime 获取上次使用时间
@@ -50,5 +51,38 @@ func UpdateLastUsedTime() error {
 
 		now := time.Now().Format(time.RFC3339)
 		return b.Put([]byte(LastUsedTimeKey), []byte(now))
+	})
+}
+
+// GetFavoriteNetworkInterface 获取收藏的网卡名称
+func GetFavoriteNetworkInterface() (string, error) {
+	var favorite string
+	err := DB.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(appSettingsBucket)
+		if b == nil {
+			return nil
+		}
+
+		data := b.Get([]byte(FavoriteNetworkInterface))
+		if data == nil {
+			return nil
+		}
+
+		favorite = string(data)
+		return nil
+	})
+
+	return favorite, err
+}
+
+// SetFavoriteNetworkInterface 设置收藏的网卡名称
+func SetFavoriteNetworkInterface(interfaceName string) error {
+	return DB.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(appSettingsBucket)
+		if b == nil {
+			return nil
+		}
+
+		return b.Put([]byte(FavoriteNetworkInterface), []byte(interfaceName))
 	})
 }

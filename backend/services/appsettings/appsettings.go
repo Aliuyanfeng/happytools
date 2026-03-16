@@ -53,3 +53,17 @@ func (s *AppSettingsService) GetLastUsedTimestamp() *int64 {
 	timestamp := lastUsed.Unix()
 	return &timestamp
 }
+
+// GetFavoriteNetworkInterface 获取收藏的网卡名称
+func (s *AppSettingsService) GetFavoriteNetworkInterface() string {
+	favorite, err := store.GetFavoriteNetworkInterface()
+	if err != nil {
+		return ""
+	}
+	return favorite
+}
+
+// SetFavoriteNetworkInterface 设置收藏的网卡名称
+func (s *AppSettingsService) SetFavoriteNetworkInterface(interfaceName string) error {
+	return store.SetFavoriteNetworkInterface(interfaceName)
+}

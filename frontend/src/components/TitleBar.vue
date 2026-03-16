@@ -2,7 +2,8 @@
   <div class="titlebar">
     <div class="titlebar-left" @dblclick="toggleMaximize">
       <!-- <div class="app-icon">🔧</div> -->
-      <div class="app-title">happytools</div>
+      <!-- <div class="app-title">happytools</div> -->
+      <img class=app-logo src="@/assets/images/logo.png" alt="">
     </div>
 
     <div class="titlebar-right">
@@ -118,6 +119,9 @@ onMounted(() => {
 .app-icon {
   font-size: 20px;
   
+}
+.app-logo {
+  height: 28px;
 }
 
 .app-title {
