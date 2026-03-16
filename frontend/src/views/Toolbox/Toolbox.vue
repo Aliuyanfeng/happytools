@@ -37,6 +37,12 @@
             </template>
             <span v-if="!isCollapsed">加密工具</span>
           </a-menu-item>
+          <a-menu-item key="png-injector">
+            <template #icon>
+              <FileImageOutlined />
+            </template>
+            <span v-if="!isCollapsed">PNG 注入</span>
+          </a-menu-item>
         </a-menu-item-group>
       </a-menu>
 
@@ -98,7 +104,8 @@ import {
   SafetyOutlined,
   ToolOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  FileImageOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -112,6 +119,7 @@ const currentTool = computed(() => {
   const path = route.path
   if (path.includes('unit-converter')) return 'unit-converter'
   if (path.includes('encryption')) return 'encryption'
+  if (path.includes('png-injector')) return 'png-injector'
   return ''
 })
 

@@ -24,6 +24,7 @@ import (
 	"github.com/Aliuyanfeng/happytools/backend/services/clipboard"
 	"github.com/Aliuyanfeng/happytools/backend/services/dailyreport"
 	"github.com/Aliuyanfeng/happytools/backend/services/encryption"
+	"github.com/Aliuyanfeng/happytools/backend/services/pnginjector"
 	"github.com/Aliuyanfeng/happytools/backend/services/greetservice"
 	"github.com/Aliuyanfeng/happytools/backend/services/monitor"
 	"github.com/Aliuyanfeng/happytools/backend/services/network"
@@ -94,6 +95,7 @@ func main() {
 	app.RegisterService(application.NewService(unitconverter.NewUnitConverterService()))
 	app.RegisterService(application.NewService(encryption.NewEncryptionService()))
 	app.RegisterService(application.NewService(clipboard.NewClipboardService(app)))
+	app.RegisterService(application.NewService(pnginjector.NewPNGInjectorService(app)))
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.

@@ -47,6 +47,14 @@ const routes: Array<RouteRecordRaw> = [
                     title: '加密工具'
                 },
                 component: () => import('../views/Toolbox/Encryption.vue')
+            },
+            {
+                path: 'png-injector',
+                name: 'png-injector',
+                meta: {
+                    title: 'PNG 注入'
+                },
+                component: () => import('../views/Toolbox/PNGInjector.vue')
             }
         ]
     },
