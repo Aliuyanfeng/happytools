@@ -10,9 +10,14 @@
 
       <!-- Step 0: 选择文件 -->
       <div v-if="step === 0" class="step-body">
-        <div class="select-area" @click="selectFile">
+        <div
+          id="png-injector-drop"
+          data-file-drop-target
+          class="select-area"
+          @click="selectFile"
+        >
           <FileImageOutlined class="select-icon" />
-          <p class="mt-3 text-base text-gray-600">点击选择 PNG 文件</p>
+          <p class="mt-3 text-base text-gray-600">拖拽 PNG 文件到此处，或点击选择</p>
           <p class="text-xs text-gray-400">仅支持 .png 格式</p>
         </div>
       </div>
@@ -186,9 +191,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { FileImageOutlined } from '@ant-design/icons-vue'
+import { Events } from '@wailsio/runtime'
 import * as PNGInjectorService from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/pnginjector/pnginjectorservice'
 
 interface PNGChunk {
@@ -215,6 +221,51 @@ const form = reactive({
   outputPath: ''
 })
 
+// 处理拖拽进来的文件路径
+const handleDroppedFile = async (path: string) => {
+  if (!path.toLowerCase().endsWith('.png')) {
+    message.warning('仅支持 .png 格式文件')
+    return
+  }
+  filePath.value = path
+  fileName.value = path.replace(/\\/g, '/').split('/').pop() || path
+  loading.value = true
+  try {
+    const result = await PNGInjectorService.ParsePNG(path)
+    chunks.value = result
+    step.value = 1
+    message.success(`解析完成，共 ${result.length} 个 chunk`)
+  } catch (e: any) {
+    message.error('解析失败：' + (e?.message || e))
+  } finally {
+    loading.value = false
+  }
+}
+
+let offFileDrop: (() => void) | null = null
+
+onMounted(() => {
+  offFileDrop = Events.On('wails:file-drop', (event: any) => {
+    const data = event?.data
+    const droppedFiles: string[] = Array.isArray(data?.files) ? data.files : []
+    const targetId: string = data?.target ?? ''
+
+    // 只在 step 0 且拖到本区域（或 body）时处理
+    if (step.value !== 0) return
+    if (targetId && targetId !== 'png-injector-drop') return
+    if (droppedFiles.length === 0) return
+
+    handleDroppedFile(droppedFiles[0])
+  })
+})
+
+onUnmounted(() => {
+  if (offFileDrop) {
+    offFileDrop()
+    offFileDrop = null
+  }
+})
+
 const chunkCols = [
   { title: '索引', dataIndex: 'index', key: 'index', width: 60 },
   { title: 'Chunk 类型', dataIndex: 'type', key: 'type', width: 130 },
@@ -229,19 +280,9 @@ const selectFile = async () => {
   try {
     const path = await PNGInjectorService.OpenFileDialog()
     if (!path) return
-
-    filePath.value = path
-    fileName.value = path.replace(/\\/g, '/').split('/').pop() || path
-
-    loading.value = true
-    const result = await PNGInjectorService.ParsePNG(path)
-    chunks.value = result
-    step.value = 1
-    message.success(`解析完成，共 ${result.length} 个 chunk`)
+    await handleDroppedFile(path)
   } catch (e: any) {
     message.error('解析失败：' + (e?.message || e))
-  } finally {
-    loading.value = false
   }
 }
 
@@ -379,7 +420,8 @@ const formatBytes = (n: number) => {
   transition: border-color 0.2s, background 0.2s;
 }
 
-.select-area:hover {
+.select-area:hover,
+.select-area.file-drop-target-active {
   border-color: #1890ff;
   background: #f0f8ff;
 }
@@ -389,7 +431,8 @@ const formatBytes = (n: number) => {
   color: #bfbfbf;
 }
 
-.select-area:hover .select-icon {
+.select-area:hover .select-icon,
+.select-area.file-drop-target-active .select-icon {
   color: #1890ff;
 }
 
