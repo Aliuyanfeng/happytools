@@ -3,12 +3,9 @@
     <a-card title="批量文件重命名">
       <!-- 拖拽区域 -->
       <div
+        id="batch-rename-drop"
         data-file-drop-target
         class="drop-zone"
-        :class="{ 'drag-over': isDragOver }"
-        @dragover.prevent="isDragOver = true"
-        @dragleave.prevent="isDragOver = false"
-        @drop.prevent="onDrop"
         @click="selectFiles"
       >
         <InboxOutlined class="drop-icon" />
@@ -149,9 +146,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { InboxOutlined } from '@ant-design/icons-vue'
+import { Events } from '@wailsio/runtime'
 import * as RenameService from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/rename/renameservice'
 
 interface FileInfo {
@@ -177,6 +175,37 @@ const mode = ref<'custom' | 'hash'>('custom')
 const files = ref<FileInfo[]>([])
 const previewList = ref<FileInfo[]>([])
 const result = ref<RenameResult | null>(null)
+
+// 监听 Wails 文件拖拽事件
+let offFileDrop: (() => void) | null = null
+
+onMounted(() => {
+  // 调试：检查 enableFileDrop flag
+  const flags = (window as any)._wails?.flags
+  console.log('[FileDrop] _wails.flags:', flags)
+
+  offFileDrop = Events.On('wails:file-drop', (event: any) => {
+    console.log('[FileDrop] 收到事件:', event)
+    const data = event?.data
+    const droppedFiles: string[] = Array.isArray(data?.files) ? data.files : []
+    const targetId: string = data?.target ?? ''
+
+    console.log('[FileDrop] targetId:', targetId, 'files:', droppedFiles)
+
+    // 只处理拖到 batch-rename-drop 区域的文件（targetId 为空时也接受，兼容 body drop）
+    if (targetId && targetId !== 'batch-rename-drop') return
+    if (droppedFiles.length === 0) return
+
+    addPaths(droppedFiles)
+  })
+})
+
+onUnmounted(() => {
+  if (offFileDrop) {
+    offFileDrop()
+    offFileDrop = null
+  }
+})
 
 const customRule = reactive({
   prefix: 'file',
@@ -218,35 +247,6 @@ const resultCols = [
   { title: '新文件名', dataIndex: 'newName', key: 'newName', ellipsis: true },
   { title: '状态', key: 'status', width: 80 }
 ]
-
-// 拖拽放入
-const onDrop = async (e: DragEvent) => {
-  isDragOver.value = false
-  const items = e.dataTransfer?.items
-  if (!items) return
-
-  const paths: string[] = []
-  for (const item of Array.from(items)) {
-    // Wails 环境下 webkitGetAsEntry 可以拿到路径
-    const entry = item.webkitGetAsEntry?.()
-    if (entry?.isFile) {
-      await new Promise<void>((resolve) => {
-        (entry as FileSystemFileEntry).file((f) => {
-          // @ts-ignore: Wails 注入了 path 属性
-          const p: string = (f as any).path || ''
-          if (p) paths.push(p)
-          resolve()
-        })
-      })
-    }
-  }
-
-  if (paths.length === 0) {
-    message.warning('无法获取文件路径，请使用「选择文件」按钮')
-    return
-  }
-  await addPaths(paths)
-}
 
 // 点击选择文件
 const selectFiles = async () => {
@@ -354,7 +354,7 @@ const formatBytes = (n: number) => {
   transition: border-color 0.2s, background 0.2s;
 }
 .drop-zone:hover,
-.drop-zone.drag-over {
+.drop-zone.file-drop-target-active {
   border-color: #1890ff;
   background: #f0f8ff;
 }
@@ -363,7 +363,7 @@ const formatBytes = (n: number) => {
   color: #bfbfbf;
 }
 .drop-zone:hover .drop-icon,
-.drop-zone.drag-over .drop-icon {
+.drop-zone.file-drop-target-active .drop-icon {
   color: #1890ff;
 }
 .font-mono {

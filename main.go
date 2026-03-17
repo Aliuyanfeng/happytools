@@ -35,6 +35,7 @@ import (
 	"github.com/Aliuyanfeng/happytools/backend/store"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 // Wails uses Go's `embed` package to embed the frontend files into the binary.
@@ -126,6 +127,21 @@ func main() {
 	})
 
 	mainWindow.SetAlwaysOnTop(false)
+
+	// 监听文件拖拽事件，将文件路径推送给前端
+	mainWindow.OnWindowEvent(events.Common.WindowFilesDropped, func(event *application.WindowEvent) {
+		files := event.Context().DroppedFiles()
+		log.Printf("[FileDrop] 收到拖拽文件: %+v", files)
+		targetID := ""
+		if details := event.Context().DropTargetDetails(); details != nil {
+			targetID = details.ElementID
+			log.Printf("[FileDrop] 目标元素 ID: %s", targetID)
+		}
+		app.Event.Emit("wails:file-drop", map[string]any{
+			"files":  files,
+			"target": targetID,
+		})
+	})
 
 	systray := app.SystemTray.New()
 	systray.SetLabel("HappyTools")
