@@ -55,6 +55,14 @@ const routes: Array<RouteRecordRaw> = [
                     title: 'PNG 注入'
                 },
                 component: () => import('../views/Toolbox/PNGInjector.vue')
+            },
+            {
+                path: 'batch-rename',
+                name: 'batch-rename',
+                meta: {
+                    title: '批量重命名'
+                },
+                component: () => import('../views/Toolbox/BatchRename.vue')
             }
         ]
     },

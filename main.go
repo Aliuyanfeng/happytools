@@ -122,6 +122,7 @@ func main() {
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              "/",
 		Frameless:        true,
+		EnableFileDrop: true,
 	})
 
 	mainWindow.SetAlwaysOnTop(false)

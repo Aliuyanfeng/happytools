@@ -43,6 +43,12 @@
             </template>
             <span v-if="!isCollapsed">PNG 注入</span>
           </a-menu-item>
+          <a-menu-item key="batch-rename">
+            <template #icon>
+              <EditOutlined />
+            </template>
+            <span v-if="!isCollapsed">批量重命名</span>
+          </a-menu-item>
         </a-menu-item-group>
       </a-menu>
 
@@ -105,7 +111,8 @@ import {
   ToolOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  FileImageOutlined
+  FileImageOutlined,
+  EditOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -120,6 +127,7 @@ const currentTool = computed(() => {
   if (path.includes('unit-converter')) return 'unit-converter'
   if (path.includes('encryption')) return 'encryption'
   if (path.includes('png-injector')) return 'png-injector'
+  if (path.includes('batch-rename')) return 'batch-rename'
   return ''
 })
 

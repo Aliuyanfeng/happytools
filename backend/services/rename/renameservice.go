@@ -216,58 +216,45 @@ func (r *RenameService) ExecuteRename(files []FileInfo, rule RenameRule) (*Renam
 }
 
 // generateNewFileName 生成新文件名
+// 格式：前缀-序号（保留扩展名时追加扩展名）
+// 不保留原文件名，完全由前缀+序号构成
 func (r *RenameService) generateNewFileName(originalName string, index int, rule RenameRule) (string, error) {
-	// 提取文件名和扩展名
-	var nameWithoutExt string
-	var extension string
-
+	// 提取扩展名
+	extension := ""
 	if rule.KeepExtension {
-		ext := filepath.Ext(originalName)
-		if ext != "" {
-			nameWithoutExt = strings.TrimSuffix(originalName, ext)
-			extension = ext
-		} else {
-			nameWithoutExt = originalName
-			extension = ""
-		}
-	} else {
-		nameWithoutExt = originalName
-		extension = ""
+		extension = filepath.Ext(originalName)
 	}
 
-	// 应用文本替换
-	if rule.ReplaceFrom != "" {
-		if rule.CaseSensitive {
-			nameWithoutExt = strings.ReplaceAll(nameWithoutExt, rule.ReplaceFrom, rule.ReplaceTo)
-		} else {
-			nameWithoutExt = strings.ReplaceAll(strings.ToLower(nameWithoutExt), strings.ToLower(rule.ReplaceFrom), rule.ReplaceTo)
-		}
+	// 计算序号，确保 NumberDigits 至少为 1
+	digits := rule.NumberDigits
+	if digits < 1 {
+		digits = 1
 	}
+	step := rule.NumberStep
+	if step < 1 {
+		step = 1
+	}
+	number := rule.StartNumber + (index * step)
+	formattedNumber := fmt.Sprintf("%0*d", digits, number)
 
-	// 添加前缀
+	// 组合：前缀-序号（有前缀时用连字符分隔）
+	var baseName string
 	if rule.Prefix != "" {
-		nameWithoutExt = rule.Prefix + nameWithoutExt
+		baseName = rule.Prefix + "-" + formattedNumber
+	} else {
+		baseName = formattedNumber
 	}
 
-	// 添加编号
-	number := rule.StartNumber + (index * rule.NumberStep)
-	formattedNumber := fmt.Sprintf("%0*d", rule.NumberDigits, number)
-	nameWithoutExt = nameWithoutExt + formattedNumber
-
-	// 添加后缀
+	// 追加后缀（可选）
 	if rule.Suffix != "" {
-		nameWithoutExt = nameWithoutExt + rule.Suffix
+		baseName = baseName + "-" + rule.Suffix
 	}
 
-	// 组合新文件名
-	newName := nameWithoutExt + extension
+	newName := baseName + extension
 
-	// 验证新文件名
 	if newName == "" {
 		return "", errors.New("生成的文件名为空")
 	}
-
-	// 检查文件名是否包含非法字符
 	if strings.ContainsAny(newName, `<>:"/\|?*`) {
 		return "", errors.New("文件名包含非法字符")
 	}
@@ -280,15 +267,15 @@ func (r *RenameService) ValidateRule(rule RenameRule) error {
 	if rule.StartNumber < 0 {
 		return errors.New("起始编号不能为负数")
 	}
-
 	if rule.NumberDigits < 1 || rule.NumberDigits > 10 {
-		return errors.New("编号位数必须在1-10之间")
+		return errors.New("编号位数必须在 1-10 之间")
 	}
-
 	if rule.NumberStep < 1 {
-		return errors.New("编号步长必须大于0")
+		return errors.New("编号步长必须大于 0")
 	}
-
+	if strings.ContainsAny(rule.Prefix, `<>:"/\|?*`) {
+		return errors.New("前缀包含非法字符")
+	}
 	return nil
 }
 
@@ -331,4 +318,108 @@ func (r *RenameService) BatchGetFileInfo(filePaths []string) ([]FileInfo, error)
 	}
 
 	return results, nil
+}
+
+// ========== 哈希重命名 ==========
+
+// HashRenameRule 哈希重命名规则
+type HashRenameRule struct {
+	Algorithm     string `json:"algorithm"`     // "md5" | "sha1" | "sha256"
+	KeepExtension bool   `json:"keepExtension"` // 是否保留扩展名
+}
+
+// PreviewHashRename 预览哈希重命名结果（读取文件内容计算哈希）
+func (r *RenameService) PreviewHashRename(files []FileInfo, rule HashRenameRule) ([]FileInfo, error) {
+	if len(files) == 0 {
+		return nil, errors.New("没有文件需要重命名")
+	}
+	results := make([]FileInfo, len(files))
+	for i, file := range files {
+		newName, err := r.hashFileName(file.OriginalPath, file.OriginalName, rule)
+		results[i] = file
+		if err != nil {
+			results[i].Error = err.Error()
+		} else {
+			results[i].NewName = newName
+			results[i].NewPath = filepath.Join(filepath.Dir(file.OriginalPath), newName)
+		}
+	}
+	return results, nil
+}
+
+// ExecuteHashRename 执行哈希重命名
+func (r *RenameService) ExecuteHashRename(files []FileInfo, rule HashRenameRule) (*RenameResult, error) {
+	if len(files) == 0 {
+		return nil, errors.New("没有文件需要重命名")
+	}
+	result := &RenameResult{
+		TotalCount: len(files),
+		Results:    make([]FileInfo, len(files)),
+	}
+	for i, file := range files {
+		if _, err := os.Stat(file.OriginalPath); err != nil {
+			result.Results[i] = file
+			result.Results[i].Error = fmt.Sprintf("文件不存在: %v", err)
+			result.FailedCount++
+			continue
+		}
+		newName, err := r.hashFileName(file.OriginalPath, file.OriginalName, rule)
+		if err != nil {
+			result.Results[i] = file
+			result.Results[i].Error = err.Error()
+			result.FailedCount++
+			continue
+		}
+		newPath := filepath.Join(filepath.Dir(file.OriginalPath), newName)
+		if _, err := os.Stat(newPath); err == nil {
+			result.Results[i] = file
+			result.Results[i].NewName = newName
+			result.Results[i].Error = fmt.Sprintf("目标文件已存在: %s", newName)
+			result.FailedCount++
+			continue
+		}
+		if err := os.Rename(file.OriginalPath, newPath); err != nil {
+			result.Results[i] = file
+			result.Results[i].NewName = newName
+			result.Results[i].Error = fmt.Sprintf("重命名失败: %v", err)
+			result.FailedCount++
+			continue
+		}
+		result.Results[i] = FileInfo{
+			OriginalPath: file.OriginalPath,
+			OriginalName: file.OriginalName,
+			NewName:      newName,
+			NewPath:      newPath,
+			Size:         file.Size,
+			IsDir:        file.IsDir,
+		}
+		result.SuccessCount++
+	}
+	return result, nil
+}
+
+// hashFileName 根据文件内容计算哈希并生成新文件名
+func (r *RenameService) hashFileName(filePath, originalName string, rule HashRenameRule) (string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("读取文件失败: %v", err)
+	}
+
+	var hashStr string
+	switch strings.ToLower(rule.Algorithm) {
+	case "md5":
+		hashStr = md5Hash(data)
+	case "sha1":
+		hashStr = sha1Hash(data)
+	case "sha256":
+		hashStr = sha256Hash(data)
+	default:
+		return "", fmt.Errorf("不支持的哈希算法: %s", rule.Algorithm)
+	}
+
+	if rule.KeepExtension {
+		ext := filepath.Ext(originalName)
+		return hashStr + ext, nil
+	}
+	return hashStr, nil
 }
