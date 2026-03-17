@@ -4,8 +4,8 @@
     <div class="toolbox-sidebar" :class="{ collapsed: isCollapsed }">
       <div class="sidebar-header">
         <div v-if="!isCollapsed" class="header-content">
-          <h2 class="mb-1 text-lg font-bold text-gray-800">工具盒子</h2>
-          <p class="text-xs text-gray-500">实用工具集合</p>
+          <h2 class="mb-1 text-lg font-bold text-gray-800">{{ t('toolbox.title') }}</h2>
+          <p class="text-xs text-gray-500">{{ t('toolbox.subtitle') }}</p>
         </div>
         <div v-else class="header-collapsed">
           <ToolOutlined class="text-xl" />
@@ -20,34 +20,34 @@
         @click="handleMenuClick"
       >
         <!-- 数据转换分类 -->
-        <a-menu-item-group key="data-convert" title="数据转换">
+        <a-menu-item-group key="data-convert" :title="t('toolbox.categoryDataConvert')">
           <a-menu-item key="unit-converter">
             <template #icon>
               <RetweetOutlined />
             </template>
-            <span v-if="!isCollapsed">单位转换</span>
+            <span v-if="!isCollapsed">{{ t('toolbox.menuUnitConverter') }}</span>
           </a-menu-item>
         </a-menu-item-group>
 
         <!-- 辅助工具分类 -->
-        <a-menu-item-group key="tools" title="辅助工具">
+        <a-menu-item-group key="tools" :title="t('toolbox.categoryTools')">
           <a-menu-item key="encryption">
             <template #icon>
               <SafetyOutlined />
             </template>
-            <span v-if="!isCollapsed">加密工具</span>
+            <span v-if="!isCollapsed">{{ t('toolbox.menuEncryption') }}</span>
           </a-menu-item>
           <a-menu-item key="png-injector">
             <template #icon>
               <FileImageOutlined />
             </template>
-            <span v-if="!isCollapsed">PNG 注入</span>
+            <span v-if="!isCollapsed">{{ t('toolbox.menuPngInjector') }}</span>
           </a-menu-item>
           <a-menu-item key="batch-rename">
             <template #icon>
               <EditOutlined />
             </template>
-            <span v-if="!isCollapsed">批量重命名</span>
+            <span v-if="!isCollapsed">{{ t('toolbox.menuBatchRename') }}</span>
           </a-menu-item>
         </a-menu-item-group>
       </a-menu>
@@ -65,8 +65,8 @@
       <div v-if="!currentTool" class="welcome-page">
         <div class="welcome-content">
           <ToolOutlined class="welcome-icon" />
-          <h1 class="mb-4 text-3xl font-bold text-gray-800">欢迎使用工具盒子</h1>
-          <p class="mb-8 text-lg text-gray-600">请从左侧选择一个工具开始使用</p>
+          <h1 class="mb-4 text-3xl font-bold text-gray-800">{{ t('toolbox.welcome') }}</h1>
+          <p class="mb-8 text-lg text-gray-600">{{ t('toolbox.welcomeHint') }}</p>
 
           <!-- <div class="quick-access">
             <h3 class="mb-4 text-lg font-semibold text-gray-800">快速访问</h3>
@@ -105,6 +105,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   RetweetOutlined,
   SafetyOutlined,
@@ -115,6 +116,7 @@ import {
   EditOutlined
 } from '@ant-design/icons-vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 

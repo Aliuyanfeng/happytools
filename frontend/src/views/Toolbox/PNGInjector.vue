@@ -1,11 +1,11 @@
 <template>
   <div class="p-6">
-    <a-card title="PNG Chunk 注入工具">
+    <a-card :title="t('toolbox.pngInjector.title')">
       <a-steps :current="step" size="small" class="mb-6">
-        <a-step title="选择文件" />
-        <a-step title="查看 Chunks" />
-        <a-step title="配置注入" />
-        <a-step title="完成" />
+        <a-step :title="t('toolbox.pngInjector.stepSelectFile')" />
+        <a-step :title="t('toolbox.pngInjector.stepViewChunks')" />
+        <a-step :title="t('toolbox.pngInjector.stepConfig')" />
+        <a-step :title="t('toolbox.pngInjector.stepDone')" />
       </a-steps>
 
       <!-- Step 0: 选择文件 -->
@@ -17,8 +17,8 @@
           @click="selectFile"
         >
           <FileImageOutlined class="select-icon" />
-          <p class="mt-3 text-base text-gray-600">拖拽 PNG 文件到此处，或点击选择</p>
-          <p class="text-xs text-gray-400">仅支持 .png 格式</p>
+          <p class="mt-3 text-base text-gray-600">{{ t('toolbox.pngInjector.dropHint') }}</p>
+          <p class="text-xs text-gray-400">{{ t('toolbox.pngInjector.dropHintSub') }}</p>
         </div>
       </div>
 
@@ -26,10 +26,10 @@
       <div v-if="step === 1" class="step-body">
         <div class="mb-3 flex items-center justify-between">
           <span class="text-sm text-gray-500">
-            文件：<span class="font-medium text-gray-700">{{ fileName }}</span>
-            &nbsp;·&nbsp;共 <span class="font-medium">{{ chunks.length }}</span> 个 chunk
+            {{ t('toolbox.pngInjector.fileInfo') }}<span class="font-medium text-gray-700">{{ fileName }}</span>
+            &nbsp;·&nbsp;{{ t('toolbox.pngInjector.chunkCount', { count: chunks.length }) }}
           </span>
-          <a-button size="small" @click="step = 0">重新选择</a-button>
+          <a-button size="small" @click="step = 0">{{ t('toolbox.pngInjector.reselect') }}</a-button>
         </div>
 
         <a-alert
@@ -39,8 +39,8 @@
           type="info"
         >
           <template #message>
-            点击「在此之前」或「在此之后」选择注入位置。
-            <span class="text-gray-500">灰色按钮为非法位置（违反 PNG chunk 顺序约束）。</span>
+            {{ t('toolbox.pngInjector.positionHint') }}
+            <span class="text-gray-500">{{ t('toolbox.pngInjector.positionHintGray') }}</span>
           </template>
         </a-alert>
 
@@ -66,7 +66,7 @@
               <span class="font-mono text-xs">{{ record.crc }}</span>
             </template>
             <template v-if="column.key === 'dataHex'">
-              <span class="font-mono text-xs text-gray-500">{{ record.dataHex || '(空)' }}</span>
+              <span class="font-mono text-xs text-gray-500">{{ record.dataHex || t('toolbox.pngInjector.empty') }}</span>
             </template>
             <template v-if="column.key === 'action'">
               <a-space>
@@ -77,7 +77,7 @@
                     :disabled="!isLegalPosition('before', record)"
                     @click="pickPosition('before', record)"
                   >
-                    在此之前
+                    {{ t('toolbox.pngInjector.insertBefore') }}
                   </a-button>
                 </a-tooltip>
                 <a-tooltip :title="getDisabledReason('after', record)">
@@ -87,7 +87,7 @@
                     :disabled="!isLegalPosition('after', record)"
                     @click="pickPosition('after', record)"
                   >
-                    在此之后
+                    {{ t('toolbox.pngInjector.insertAfter') }}
                   </a-button>
                 </a-tooltip>
               </a-space>
@@ -100,60 +100,60 @@
       <div v-if="step === 2" class="step-body">
         <a-alert class="mb-4" type="success" show-icon :closable="false">
           <template #message>
-            注入位置：在
+            {{ t('toolbox.pngInjector.injectPositionLabel') }}
             <a-tag :color="targetChunk?.critical ? 'red' : 'blue'" class="font-mono mx-1">
               {{ targetChunk?.type }}
             </a-tag>
             （索引 {{ targetChunk?.index }}）
-            <strong>{{ position === 'before' ? '之前' : '之后' }}</strong>
+            <strong>{{ position === 'before' ? t('toolbox.pngInjector.before') : t('toolbox.pngInjector.after') }}</strong>
           </template>
         </a-alert>
 
         <a-form :model="form" layout="vertical">
-          <a-form-item label="Chunk 类型（4个字符）" required>
+          <a-form-item :label="t('toolbox.pngInjector.chunkTypeLabel')" required>
             <a-input
               v-model:value="form.chunkType"
               maxlength="4"
               show-count
-              placeholder="例如: rPOC"
+              :placeholder="t('toolbox.pngInjector.chunkTypePlaceholder')"
               style="width: 200px"
               :status="form.chunkType.length > 0 && form.chunkType.length !== 4 ? 'error' : ''"
             />
             <div class="text-xs text-gray-400 mt-1">
-              首字母小写 = 辅助 chunk（推荐），大写 = 关键 chunk
+              {{ t('toolbox.pngInjector.chunkTypeHint') }}
             </div>
           </a-form-item>
 
-          <a-form-item label="Payload" required>
+          <a-form-item :label="t('toolbox.pngInjector.payloadLabel')" required>
             <a-textarea
               v-model:value="form.payload"
               :rows="8"
-              placeholder="输入要注入的数据内容"
+              :placeholder="t('toolbox.pngInjector.payloadPlaceholder')"
               class="font-mono"
             />
             <div class="text-xs text-gray-400 mt-1">
-              {{ form.payload.length }} 字节
+              {{ t('toolbox.pngInjector.payloadBytes', { count: form.payload.length }) }}
             </div>
           </a-form-item>
 
-          <a-form-item label="输出文件路径" required>
+          <a-form-item :label="t('toolbox.pngInjector.outputPathLabel')" required>
             <a-input-group compact>
               <a-input
                 v-model:value="form.outputPath"
                 readonly
-                placeholder="点击右侧按钮选择保存路径"
+                :placeholder="t('toolbox.pngInjector.outputPathPlaceholder')"
                 style="width: calc(100% - 100px)"
               />
-              <a-button @click="selectOutput">选择路径</a-button>
+              <a-button @click="selectOutput">{{ t('toolbox.pngInjector.selectOutput') }}</a-button>
             </a-input-group>
           </a-form-item>
 
           <a-form-item>
             <a-space>
               <a-button type="primary" :loading="loading" @click="doInject">
-                执行注入
+                {{ t('toolbox.pngInjector.inject') }}
               </a-button>
-              <a-button @click="step = 1">返回</a-button>
+              <a-button @click="step = 1">{{ t('toolbox.pngInjector.back') }}</a-button>
             </a-space>
           </a-form-item>
         </a-form>
@@ -161,27 +161,27 @@
 
       <!-- Step 3: 完成 -->
       <div v-if="step === 3" class="step-body">
-        <a-result status="success" title="注入成功">
+        <a-result status="success" :title="t('toolbox.pngInjector.successTitle')">
           <template #subTitle>
-            文件已保存至：<span class="font-mono text-sm">{{ form.outputPath }}</span>
+            {{ t('toolbox.pngInjector.successSub') }}<span class="font-mono text-sm">{{ form.outputPath }}</span>
           </template>
           <template #extra>
-            <a-button type="primary" @click="reset">注入新文件</a-button>
+            <a-button type="primary" @click="reset">{{ t('toolbox.pngInjector.injectNew') }}</a-button>
           </template>
         </a-result>
 
         <a-descriptions bordered size="small" class="mt-4" :column="2">
-          <a-descriptions-item label="原始文件">{{ fileName }}</a-descriptions-item>
-          <a-descriptions-item label="Chunk 类型">
+          <a-descriptions-item :label="t('toolbox.pngInjector.descOriginalFile')">{{ fileName }}</a-descriptions-item>
+          <a-descriptions-item :label="t('toolbox.pngInjector.descChunkType')">
             <span class="font-mono">{{ form.chunkType }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="注入位置">
-            {{ targetChunk?.type }}（索引 {{ targetChunk?.index }}）{{ position === 'before' ? ' 之前' : ' 之后' }}
+          <a-descriptions-item :label="t('toolbox.pngInjector.descInjectPosition')">
+            {{ targetChunk?.type }}（索引 {{ targetChunk?.index }}）{{ position === 'before' ? ' ' + t('toolbox.pngInjector.before') : ' ' + t('toolbox.pngInjector.after') }}
           </a-descriptions-item>
-          <a-descriptions-item label="Payload 大小">
+          <a-descriptions-item :label="t('toolbox.pngInjector.descPayloadSize')">
             {{ formatBytes(form.payload.length) }}
           </a-descriptions-item>
-          <a-descriptions-item label="输出路径" :span="2">
+          <a-descriptions-item :label="t('toolbox.pngInjector.descOutputPath')" :span="2">
             <span class="font-mono text-xs">{{ form.outputPath }}</span>
           </a-descriptions-item>
         </a-descriptions>
@@ -194,8 +194,11 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { FileImageOutlined } from '@ant-design/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { Events } from '@wailsio/runtime'
 import * as PNGInjectorService from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/pnginjector/pnginjectorservice'
+
+const { t } = useI18n()
 
 interface PNGChunk {
   index: number
@@ -224,7 +227,7 @@ const form = reactive({
 // 处理拖拽进来的文件路径
 const handleDroppedFile = async (path: string) => {
   if (!path.toLowerCase().endsWith('.png')) {
-    message.warning('仅支持 .png 格式文件')
+    message.warning(t('toolbox.pngInjector.onlyPng'))
     return
   }
   filePath.value = path
@@ -234,9 +237,9 @@ const handleDroppedFile = async (path: string) => {
     const result = await PNGInjectorService.ParsePNG(path)
     chunks.value = result
     step.value = 1
-    message.success(`解析完成，共 ${result.length} 个 chunk`)
+    message.success(t('toolbox.pngInjector.parseDone', { count: result.length }))
   } catch (e: any) {
-    message.error('解析失败：' + (e?.message || e))
+    message.error(t('toolbox.pngInjector.parseFailed') + '：' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -266,14 +269,14 @@ onUnmounted(() => {
   }
 })
 
-const chunkCols = [
-  { title: '索引', dataIndex: 'index', key: 'index', width: 60 },
-  { title: 'Chunk 类型', dataIndex: 'type', key: 'type', width: 130 },
-  { title: '数据长度', dataIndex: 'length', key: 'length', width: 100 },
-  { title: 'CRC', dataIndex: 'crc', key: 'crc', width: 110 },
-  { title: '数据预览 (Hex)', dataIndex: 'dataHex', key: 'dataHex', ellipsis: true },
-  { title: '注入位置', key: 'action', width: 160 }
-]
+const chunkCols = computed(() => [
+  { title: t('toolbox.pngInjector.colIndex'), dataIndex: 'index', key: 'index', width: 60 },
+  { title: t('toolbox.pngInjector.colType'), dataIndex: 'type', key: 'type', width: 130 },
+  { title: t('toolbox.pngInjector.colLength'), dataIndex: 'length', key: 'length', width: 100 },
+  { title: t('toolbox.pngInjector.colCrc'), dataIndex: 'crc', key: 'crc', width: 110 },
+  { title: t('toolbox.pngInjector.colDataHex'), dataIndex: 'dataHex', key: 'dataHex', ellipsis: true },
+  { title: t('toolbox.pngInjector.colAction'), key: 'action', width: 160 }
+])
 
 // 选择 PNG 文件
 const selectFile = async () => {
@@ -282,7 +285,7 @@ const selectFile = async () => {
     if (!path) return
     await handleDroppedFile(path)
   } catch (e: any) {
-    message.error('解析失败：' + (e?.message || e))
+    message.error(t('toolbox.pngInjector.parseFailed') + '：' + (e?.message || e))
   }
 }
 
@@ -318,11 +321,11 @@ const getDisabledReason = (pos: 'before' | 'after', chunk: PNGChunk): string => 
   const prev = chunks.value[idx - 1]
   const next = chunks.value[idx + 1]
 
-  if (pos === 'before' && chunk.type === 'IHDR') return 'IHDR 必须是第一个 chunk，不能在其之前注入'
-  if (pos === 'after' && chunk.type === 'IEND') return 'IEND 必须是最后一个 chunk，不能在其之后注入'
-  if (pos === 'before' && chunk.type === 'IDAT' && prev?.type === 'IDAT') return '不能在连续 IDAT 块之间注入'
-  if (pos === 'after' && chunk.type === 'IDAT' && next?.type === 'IDAT') return '不能在连续 IDAT 块之间注入'
-  return '非法注入位置'
+  if (pos === 'before' && chunk.type === 'IHDR') return t('toolbox.pngInjector.disabledIHDRBefore')
+  if (pos === 'after' && chunk.type === 'IEND') return t('toolbox.pngInjector.disabledIENDAfter')
+  if (pos === 'before' && chunk.type === 'IDAT' && prev?.type === 'IDAT') return t('toolbox.pngInjector.disabledIDATBetween')
+  if (pos === 'after' && chunk.type === 'IDAT' && next?.type === 'IDAT') return t('toolbox.pngInjector.disabledIDATBetween')
+  return t('toolbox.pngInjector.disabledIllegal')
 }
 const pickPosition = (pos: 'before' | 'after', chunk: PNGChunk) => {
   position.value = pos
@@ -344,22 +347,22 @@ const selectOutput = async () => {
     const path = await PNGInjectorService.SaveFileDialog(defaultName)
     if (path) form.outputPath = path
   } catch (e: any) {
-    message.error('选择路径失败：' + (e?.message || e))
+    message.error(t('toolbox.pngInjector.selectOutputFailed') + '：' + (e?.message || e))
   }
 }
 
 // 执行注入
 const doInject = async () => {
   if (form.chunkType.length !== 4) {
-    message.warning('Chunk 类型必须是 4 个字符')
+    message.warning(t('toolbox.pngInjector.chunkTypeMustBe4'))
     return
   }
   if (!form.payload) {
-    message.warning('请输入 payload')
+    message.warning(t('toolbox.pngInjector.payloadRequired'))
     return
   }
   if (!form.outputPath) {
-    message.warning('请选择输出路径')
+    message.warning(t('toolbox.pngInjector.outputRequired'))
     return
   }
 
@@ -375,7 +378,7 @@ const doInject = async () => {
     )
     step.value = 3
   } catch (e: any) {
-    message.error('注入失败：' + (e?.message || e))
+    message.error(t('toolbox.pngInjector.injectFailed') + '：' + (e?.message || e))
   } finally {
     loading.value = false
   }

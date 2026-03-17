@@ -1,6 +1,6 @@
 <template>
   <div class="p-6">
-    <a-card title="批量文件重命名">
+    <a-card :title="t('toolbox.batchRename.title')">
       <!-- 拖拽区域 -->
       <div
         id="batch-rename-drop"
@@ -9,16 +9,16 @@
         @click="selectFiles"
       >
         <InboxOutlined class="drop-icon" />
-        <p class="mt-2 text-sm text-gray-600">拖拽文件到此处，或点击选择文件</p>
-        <p class="text-xs text-gray-400">支持多文件，拖拽可追加</p>
+        <p class="mt-2 text-sm text-gray-600">{{ t('toolbox.batchRename.dropHint') }}</p>
+        <p class="text-xs text-gray-400">{{ t('toolbox.batchRename.dropHintSub') }}</p>
       </div>
 
       <!-- 文件列表 -->
       <div v-if="files.length > 0" class="mt-4">
         <div class="mb-2 flex items-center justify-between">
-          <span class="text-sm text-gray-500">已添加 <strong>{{ files.length }}</strong> 个文件</span>
+          <span class="text-sm text-gray-500">{{ t('toolbox.batchRename.filesAdded', { count: files.length }) }}</span>
           <a-space>
-            <a-button size="small" danger @click="clearFiles">清空</a-button>
+            <a-button size="small" danger @click="clearFiles">{{ t('toolbox.batchRename.clear') }}</a-button>
           </a-space>
         </div>
         <a-table
@@ -42,7 +42,7 @@
               <span class="text-xs">{{ formatBytes(record.size) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button type="link" size="small" danger @click="removeFile(record.originalPath)">移除</a-button>
+              <a-button type="link" size="small" danger @click="removeFile(record.originalPath)">{{ t('toolbox.batchRename.remove') }}</a-button>
             </template>
           </template>
         </a-table>
@@ -50,58 +50,58 @@
     </a-card>
 
     <!-- 重命名规则配置 -->
-    <a-card title="重命名规则" class="mt-4">
+    <a-card :title="t('toolbox.batchRename.rulesTitle')" class="mt-4">
       <a-radio-group v-model:value="mode" button-style="solid" class="mb-4">
-        <a-radio-button value="custom">自定义重命名</a-radio-button>
-        <a-radio-button value="hash">哈希重命名</a-radio-button>
+        <a-radio-button value="custom">{{ t('toolbox.batchRename.modeCustom') }}</a-radio-button>
+        <a-radio-button value="hash">{{ t('toolbox.batchRename.modeHash') }}</a-radio-button>
       </a-radio-group>
 
       <!-- 自定义模式 -->
       <div v-if="mode === 'custom'">
         <a-form layout="inline" class="mb-2">
-          <a-form-item label="前缀文字">
-            <a-input v-model:value="customRule.prefix" placeholder="例如: file" style="width:140px" />
+          <a-form-item :label="t('toolbox.batchRename.prefix')">
+            <a-input v-model:value="customRule.prefix" :placeholder="t('toolbox.batchRename.prefixPlaceholder')" style="width:140px" />
           </a-form-item>
-          <a-form-item label="起始序号">
+          <a-form-item :label="t('toolbox.batchRename.startNumber')">
             <a-input-number v-model:value="customRule.startNumber" :min="0" style="width:90px" />
           </a-form-item>
-          <a-form-item label="序号位数">
+          <a-form-item :label="t('toolbox.batchRename.numberDigits')">
             <a-input-number v-model:value="customRule.numberDigits" :min="1" :max="10" style="width:80px" />
           </a-form-item>
-          <a-form-item label="步长">
+          <a-form-item :label="t('toolbox.batchRename.numberStep')">
             <a-input-number v-model:value="customRule.numberStep" :min="1" style="width:80px" />
           </a-form-item>
-          <a-form-item label="保留扩展名">
+          <a-form-item :label="t('toolbox.batchRename.keepExtension')">
             <a-switch v-model:checked="customRule.keepExtension" />
           </a-form-item>
         </a-form>
         <div class="text-xs text-gray-400 mb-3">
-          预览格式：<span class="font-mono text-gray-600">{{ previewCustomName }}</span>
+          {{ t('toolbox.batchRename.previewFormat') }}：<span class="font-mono text-gray-600">{{ previewCustomName }}</span>
         </div>
       </div>
 
       <!-- 哈希模式 -->
       <div v-if="mode === 'hash'">
         <a-form layout="inline" class="mb-2">
-          <a-form-item label="哈希算法">
+          <a-form-item :label="t('toolbox.batchRename.hashAlgorithm')">
             <a-radio-group v-model:value="hashRule.algorithm" button-style="outline">
               <a-radio-button value="md5">MD5</a-radio-button>
               <a-radio-button value="sha1">SHA1</a-radio-button>
               <a-radio-button value="sha256">SHA256</a-radio-button>
             </a-radio-group>
           </a-form-item>
-          <a-form-item label="保留扩展名">
+          <a-form-item :label="t('toolbox.batchRename.keepExtension')">
             <a-switch v-model:checked="hashRule.keepExtension" />
           </a-form-item>
         </a-form>
-        <div class="text-xs text-gray-400">文件名将替换为文件内容的哈希值</div>
+        <div class="text-xs text-gray-400">{{ t('toolbox.batchRename.hashHint') }}</div>
       </div>
 
       <a-divider class="my-3" />
 
       <a-space>
         <a-button @click="doPreview" :loading="loading" :disabled="files.length === 0">
-          预览结果
+          {{ t('toolbox.batchRename.preview') }}
         </a-button>
         <a-button
           type="primary"
@@ -109,17 +109,17 @@
           :loading="loading"
           :disabled="files.length === 0"
         >
-          执行重命名
+          {{ t('toolbox.batchRename.execute') }}
         </a-button>
       </a-space>
     </a-card>
 
     <!-- 执行结果 -->
-    <a-card v-if="result" title="执行结果" class="mt-4">
+    <a-card v-if="result" :title="t('toolbox.batchRename.resultTitle')" class="mt-4">
       <a-space class="mb-3">
-        <a-tag color="green">成功 {{ result.successCount }}</a-tag>
-        <a-tag color="red" v-if="result.failedCount > 0">失败 {{ result.failedCount }}</a-tag>
-        <a-tag>共 {{ result.totalCount }}</a-tag>
+        <a-tag color="green">{{ t('toolbox.batchRename.resultSuccess', { count: result.successCount }) }}</a-tag>
+        <a-tag color="red" v-if="result.failedCount > 0">{{ t('toolbox.batchRename.resultFailed', { count: result.failedCount }) }}</a-tag>
+        <a-tag>{{ t('toolbox.batchRename.resultTotal', { count: result.totalCount }) }}</a-tag>
       </a-space>
       <a-table
         :columns="resultCols"
@@ -132,7 +132,7 @@
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
             <a-tag :color="record.error ? 'red' : 'green'">
-              {{ record.error ? '失败' : '成功' }}
+              {{ record.error ? t('toolbox.batchRename.statusFailed') : t('toolbox.batchRename.statusSuccess') }}
             </a-tag>
           </template>
           <template v-if="column.key === 'newName'">
@@ -149,6 +149,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { InboxOutlined } from '@ant-design/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { Events } from '@wailsio/runtime'
 import * as RenameService from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/rename/renameservice'
 
@@ -169,6 +170,7 @@ interface RenameResult {
   results: FileInfo[]
 }
 
+const { t } = useI18n()
 const isDragOver = ref(false)
 const loading = ref(false)
 const mode = ref<'custom' | 'hash'>('custom')
@@ -235,18 +237,18 @@ const previewCustomName = computed(() => {
   return `${prefix}${num}${suffix}${ext}`
 })
 
-const fileCols = [
-  { title: '原文件名', dataIndex: 'originalName', key: 'originalName', ellipsis: true },
-  { title: '新文件名（预览）', dataIndex: 'newName', key: 'newName', ellipsis: true },
-  { title: '大小', dataIndex: 'size', key: 'size', width: 90 },
-  { title: '操作', key: 'action', width: 70 }
-]
+const fileCols = computed(() => [
+  { title: t('toolbox.batchRename.colOriginalName'), dataIndex: 'originalName', key: 'originalName', ellipsis: true },
+  { title: t('toolbox.batchRename.colNewName'), dataIndex: 'newName', key: 'newName', ellipsis: true },
+  { title: t('toolbox.batchRename.colSize'), dataIndex: 'size', key: 'size', width: 90 },
+  { title: t('toolbox.batchRename.colAction'), key: 'action', width: 70 }
+])
 
-const resultCols = [
-  { title: '原文件名', dataIndex: 'originalName', key: 'originalName', ellipsis: true },
-  { title: '新文件名', dataIndex: 'newName', key: 'newName', ellipsis: true },
-  { title: '状态', key: 'status', width: 80 }
-]
+const resultCols = computed(() => [
+  { title: t('toolbox.batchRename.colOriginalName'), dataIndex: 'originalName', key: 'originalName', ellipsis: true },
+  { title: t('toolbox.batchRename.colNewNameResult'), dataIndex: 'newName', key: 'newName', ellipsis: true },
+  { title: t('toolbox.batchRename.colStatus'), key: 'status', width: 80 }
+])
 
 // 点击选择文件
 const selectFiles = async () => {
@@ -254,7 +256,7 @@ const selectFiles = async () => {
     const paths = await RenameService.OpenFileDialogs()
     if (paths?.length) await addPaths(paths)
   } catch (e: any) {
-    message.error('选择文件失败：' + (e?.message || e))
+    message.error(t('toolbox.batchRename.selectFailed') + '：' + (e?.message || e))
   }
 }
 
@@ -263,7 +265,7 @@ const addPaths = async (paths: string[]) => {
   const existing = new Set(files.value.map(f => f.originalPath))
   const newPaths = paths.filter(p => !existing.has(p))
   if (!newPaths.length) {
-    message.info('所选文件已全部添加')
+    message.info(t('toolbox.batchRename.allAdded'))
     return
   }
   try {
@@ -272,7 +274,7 @@ const addPaths = async (paths: string[]) => {
     previewList.value = []
     result.value = null
   } catch (e: any) {
-    message.error('获取文件信息失败：' + (e?.message || e))
+    message.error(t('toolbox.batchRename.getInfoFailed') + '：' + (e?.message || e))
   }
 }
 
@@ -298,9 +300,9 @@ const doPreview = async () => {
     } else {
       previewList.value = await RenameService.PreviewHashRename(files.value, hashRule)
     }
-    message.success('预览完成')
+    message.success(t('toolbox.batchRename.previewDone'))
   } catch (e: any) {
-    message.error('预览失败：' + (e?.message || e))
+    message.error(t('toolbox.batchRename.previewFailed') + '：' + (e?.message || e))
   } finally {
     loading.value = false
   }
@@ -320,14 +322,14 @@ const doRename = async () => {
     result.value = res
     if (res) {
       if (res.failedCount === 0) {
-        message.success(`全部重命名成功，共 ${res.successCount} 个文件`)
+        message.success(t('toolbox.batchRename.allSuccess', { count: res.successCount }))
         clearFiles()
       } else {
-        message.warning(`完成：${res.successCount} 成功，${res.failedCount} 失败`)
+        message.warning(t('toolbox.batchRename.partialSuccess', { success: res.successCount, failed: res.failedCount }))
       }
     }
   } catch (e: any) {
-    message.error('重命名失败：' + (e?.message || e))
+    message.error(t('toolbox.batchRename.renameFailed') + '：' + (e?.message || e))
   } finally {
     loading.value = false
   }
