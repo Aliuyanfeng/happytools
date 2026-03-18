@@ -161,6 +161,15 @@
     pleaseSelectDirectory: 'Please select a directory',
     selectFileFailed: 'Failed to select file',
     selectDirectoryFailed: 'Failed to select directory',
+    quota: {
+      title: 'API Quota',
+      hourly: 'Hourly',
+      daily: 'Daily',
+      monthly: 'Monthly',
+      used: 'Used',
+      allowed: 'Limit',
+      loadFailed: 'Failed to load quota',
+    },
   },
   network: {
     title: 'Network Debug',

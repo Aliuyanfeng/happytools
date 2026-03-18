@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-	"log"
 	"github.com/Aliuyanfeng/happytools/backend/store"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -70,6 +69,82 @@ type UserInfo struct {
 	LastLogin int64  `json:"lastLogin"`
 }
 
+// QuotaItem API 配额项
+type QuotaItem struct {
+	Allowed int `json:"allowed"`
+	Used    int `json:"used"`
+}
+
+// APIQuota API 配额信息
+type APIQuota struct {
+	Hourly  QuotaItem `json:"hourly"`
+	Daily   QuotaItem `json:"daily"`
+	Monthly QuotaItem `json:"monthly"`
+}
+
+// GetAPIQuota 获取当前 API Key 的配额信息
+func (v *VTService) GetAPIQuota() (*APIQuota, error) {
+	if v.apiKey == "" {
+		return nil, fmt.Errorf("API key is empty")
+	}
+
+	// 先获取用户 ID
+	userInfo, err := v.GetUserInfo(v.apiKey)
+	if err != nil {
+		return nil, err
+	}
+
+	url := fmt.Sprintf("https://www.virustotal.com/api/v3/users/%s/api_quota_group", userInfo.ID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("x-apikey", v.apiKey)
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Data struct {
+			Attributes struct {
+				Quotas struct {
+					Hourly  struct {
+						Allowed int `json:"allowed"`
+						Used    int `json:"used"`
+					} `json:"api_requests_hourly"`
+					Daily struct {
+						Allowed int `json:"allowed"`
+						Used    int `json:"used"`
+					} `json:"api_requests_daily"`
+					Monthly struct {
+						Allowed int `json:"allowed"`
+						Used    int `json:"used"`
+					} `json:"api_requests_monthly"`
+				} `json:"quotas"`
+			} `json:"attributes"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %v", err)
+	}
+
+	return &APIQuota{
+		Hourly:  QuotaItem{Allowed: result.Data.Attributes.Quotas.Hourly.Allowed, Used: result.Data.Attributes.Quotas.Hourly.Used},
+		Daily:   QuotaItem{Allowed: result.Data.Attributes.Quotas.Daily.Allowed, Used: result.Data.Attributes.Quotas.Daily.Used},
+		Monthly: QuotaItem{Allowed: result.Data.Attributes.Quotas.Monthly.Allowed, Used: result.Data.Attributes.Quotas.Monthly.Used},
+	}, nil
+}
+
 // GetUserInfo 获取当前 API Key 对应的用户信息
 func (v *VTService) GetUserInfo(apiKey string) (*UserInfo, error) {
 	if apiKey == "" {
@@ -107,11 +182,11 @@ func (v *VTService) GetUserInfo(apiKey string) (*UserInfo, error) {
 			} `json:"attributes"`
 		} `json:"data"`
 	}
-	log.Printf(fmt.Sprintf("%+v", json.NewDecoder(resp.Body)))
+	// log.Printf(fmt.Sprintf("%+v", json.NewDecoder(resp.Body)))
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %v", err)
 	}
-
+	v.apiKey = apiKey
 	return &UserInfo{
 		ID:        result.Data.ID,
 		Type:      result.Data.Type,

@@ -1,15 +1,42 @@
 <template>
   <div class="vt p-6">
-    <a-card>
-      <template #title>
-        <div class="flex items-center justify-between">
-          <div>
-            {{ t('virustotal.taskList') }}
-          </div>
-          <a-button type="primary" class="ml-2" :icon="h(PlusOutlined)" @click="openCreateTaskModal">{{ t('virustotal.createTask') }}</a-button>
+    <a-card :bodyStyle="{ padding: 0 }">
+      <!-- 配额信息条 -->
+      <div class="quota-header" v-if="apiQuota || quotaLoading">
+        <div class="quota-header-left">
+          <span class="quota-header-title">
+            <SafetyCertificateOutlined class="mr-1" />
+            API Quota
+          </span>
+          <a-spin :spinning="quotaLoading" size="small" />
         </div>
-      </template>
-      <a-table :dataSource="tasks" :columns="columns" rowKey="id" :loading="loading" :pagination="{ pageSize: 10 }">
+        <div class="quota-header-items" v-if="apiQuota">
+          <div class="quota-stat-item" v-for="(item, key) in quotaDisplayList" :key="key">
+            <div class="quota-stat-header">
+              <span class="quota-stat-label">{{ item.label }}</span>
+              <span class="quota-stat-nums">
+                <span :style="{ color: quotaColor(item.quota) }">{{ formatQuotaNum(item.quota.used) }}</span>
+                <span class="quota-stat-sep">/</span>
+                <span class="quota-stat-total">{{ formatQuotaNum(item.quota.allowed) }}</span>
+              </span>
+            </div>
+            <a-progress
+              :percent="quotaPercent(item.quota)"
+              :stroke-color="quotaColor(item.quota)"
+              :show-info="false"
+              size="small"
+              class="quota-progress"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 任务列表 header -->
+      <div class="task-list-header mt-5">
+        <span class="task-list-title">{{ t('virustotal.taskList') }}</span>
+        <a-button type="primary" :icon="h(PlusOutlined)" @click="openCreateTaskModal">{{ t('virustotal.createTask') }}</a-button>
+      </div>
+      <a-table class="quota-table" :dataSource="tasks" :columns="columns" rowKey="id" :loading="loading" :pagination="{ pageSize: 10 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'taskType'">
             <a-tag :color="record.taskType === 'directory' ? 'blue' : 'green'">
@@ -408,6 +435,7 @@ import {
   PlusOutlined,
   FileFilled,
   FolderFilled,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons-vue';
 import { h, onMounted, onUnmounted, ref, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -924,8 +952,45 @@ const getDetectionClass = (task: any): string => {
   }
 };
 
+// API 配额
+interface QuotaItem { allowed: number; used: number }
+interface APIQuota { hourly: QuotaItem; daily: QuotaItem; monthly: QuotaItem }
+const apiQuota = ref<APIQuota | null>(null)
+const quotaLoading = ref(false)
+
+const quotaDisplayList = computed(() => {
+  if (!apiQuota.value) return []
+  return [
+    { label: t('virustotal.quota.hourly'), quota: apiQuota.value.hourly },
+    { label: t('virustotal.quota.daily'),  quota: apiQuota.value.daily  },
+    { label: t('virustotal.quota.monthly'), quota: apiQuota.value.monthly },
+  ]
+})
+
+const quotaPercent = (q: QuotaItem) => q.allowed > 0 ? Math.min(100, Math.round(q.used / q.allowed * 100)) : 0
+const quotaColor = (q: QuotaItem) => {
+  const p = quotaPercent(q)
+  if (p >= 90) return '#ff4d4f'
+  if (p >= 70) return '#faad14'
+  return '#52c41a'
+}
+const formatQuotaNum = (n: number) => n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(0) + 'K' : String(n)
+
+const loadQuota = async () => {
+  if (!settingsStore.vtApiKey) return
+  quotaLoading.value = true
+  try {
+    const q = await VTService.GetAPIQuota()
+    apiQuota.value = q as APIQuota
+    quotaLoading.value = false
+  } catch (e) {
+    console.warn('Failed to load API quota:', e)
+  }
+}
+
 onMounted(() => {
   loadTasks();
+  loadQuota();
 });
 
 onUnmounted(() => {
@@ -1096,7 +1161,117 @@ onUnmounted(() => {
   margin: 2px 0;
 }
 
+/* quota 信息条 */
+.quota-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f7ff 100%);
+  border-bottom: 1px solid #d6e4ff;
+}
+
+.quota-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.quota-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2f54eb;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.quota-header-items {
+  display: flex;
+  flex: 1;
+  gap: 24px;
+}
+
+.quota-stat-item {
+  flex: 1;
+  min-width: 120px;
+}
+
+.quota-stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.quota-stat-label {
+  font-size: 12px;
+  color: #595959;
+  font-weight: 500;
+}
+
+.quota-stat-nums {
+  font-size: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.quota-stat-sep {
+  color: #bfbfbf;
+  font-size: 11px;
+}
+
+.quota-stat-total {
+  color: #8c8c8c;
+}
+
+.quota-progress {
+  margin: 0 !important;
+}
+
+/* 任务列表 header */
+.task-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.task-list-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.quota-table {
+  padding: 0 8px;
+}
+
 /* 深色主题 */
+[data-theme="dark"] .quota-header {
+  background: linear-gradient(135deg, #1a1f3a 0%, #111d2c 100%);
+  border-bottom-color: #1e3a5f;
+}
+
+[data-theme="dark"] .quota-header-title {
+  color: #69b1ff;
+}
+
+[data-theme="dark"] .quota-stat-label {
+  color: #a6a6a6;
+}
+
+[data-theme="dark"] .task-list-header {
+  border-bottom-color: #303030;
+}
+
+[data-theme="dark"] .task-list-title {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 [data-theme="dark"] .results-container {
   background-color: #1f1f1f;
 }

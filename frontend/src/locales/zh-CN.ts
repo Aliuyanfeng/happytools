@@ -161,6 +161,15 @@
     pleaseSelectDirectory: '请选择目录',
     selectFileFailed: '选择文件失败',
     selectDirectoryFailed: '选择目录失败',
+    quota: {
+      title: 'API 配额',
+      hourly: '每小时',
+      daily: '每天',
+      monthly: '每月',
+      used: '已用',
+      allowed: '上限',
+      loadFailed: '获取配额失败',
+    },
   },
   network: {
     title: '网络调试',
