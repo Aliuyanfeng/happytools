@@ -62,17 +62,30 @@ export const useSettingsStore = defineStore('settings', () => {
     localStorage.setItem('vtConcurrency', String(newVal))
   })
 
+  // 当前实际是否为暗色（用于 ConfigProvider）
+  const isDark = ref(false)
+
+  // 监听系统主题变化（用于 auto 模式）
+  const systemDarkMQ = window.matchMedia('(prefers-color-scheme: dark)')
+  systemDarkMQ.addEventListener('change', () => {
+    if (themeMode.value === 'auto') {
+      applyTheme('auto')
+    }
+  })
+
   // 应用主题
   function applyTheme(mode: ThemeMode) {
     const root = document.documentElement
+    let dark = false
 
     if (mode === 'auto') {
-      // 跟随系统
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      root.setAttribute('data-theme', isDark ? 'dark' : 'light')
+      dark = window.matchMedia('(prefers-color-scheme: dark)').matches
     } else {
-      root.setAttribute('data-theme', mode)
+      dark = mode === 'dark'
     }
+
+    isDark.value = dark
+    root.setAttribute('data-theme', dark ? 'dark' : 'light')
   }
 
   // 应用字体大小
@@ -112,6 +125,7 @@ export const useSettingsStore = defineStore('settings', () => {
     closeBehavior,
     vtApiKey,
     vtConcurrency,
+    isDark,
     initSettings
   }
 })

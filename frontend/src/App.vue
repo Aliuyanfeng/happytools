@@ -13,6 +13,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { HomeOutlined } from '@ant-design/icons-vue';
+import { theme as antTheme } from 'ant-design-vue';
 import TitleBar from './components/TitleBar.vue';
 import { useAppStore } from './stores/app';
 import { useSettingsStore } from './stores/settings';
@@ -27,6 +28,11 @@ const settingsStore = useSettingsStore();
 const showBackHome = computed(() => route.path !== '/');
 
 const lastUsedTime = ref<string>("")
+
+// 动态 antd 主题配置
+const antdTheme = computed(() => ({
+  algorithm: settingsStore.isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+}))
 
 function goHome() {
   if (route.path !== '/') {
@@ -52,30 +58,31 @@ onMounted(()=>{
 </script>
 
 <template>
-  <a-layout class="layout">
-    <TitleBar />
-    <a-layout>
-      <a-layout-content class="content">
-        <router-view />
-        <transition name="fade">
-          <a-button
-            v-if="showBackHome"
-            class="back-home-btn"
-            type="primary"
-            shape="circle"
-            size="large"
-            @click="goHome"
-          >
-            <HomeOutlined />
-          </a-button>
-        </transition>
-      </a-layout-content>
-      <a-layout-footer class="app-footer">
-        <!-- <div class="runtime-info">版本: v0.0.1</div> -->
-        <div class="copyright">{{ t('app.lastUsed') }}: {{ appStore.lastUsedTime }}</div>
-      </a-layout-footer>
+  <a-config-provider :theme="antdTheme">
+    <a-layout class="layout">
+      <TitleBar />
+      <a-layout>
+        <a-layout-content class="content">
+          <router-view />
+          <transition name="fade">
+            <a-button
+              v-if="showBackHome"
+              class="back-home-btn"
+              type="primary"
+              shape="circle"
+              size="large"
+              @click="goHome"
+            >
+              <HomeOutlined />
+            </a-button>
+          </transition>
+        </a-layout-content>
+        <a-layout-footer class="app-footer">
+          <div class="copyright">{{ t('app.lastUsed') }}: {{ appStore.lastUsedTime }}</div>
+        </a-layout-footer>
+      </a-layout>
     </a-layout>
-  </a-layout>
+  </a-config-provider>
 </template>
 
 <style lang="scss">
@@ -85,53 +92,73 @@ html, body, #app {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* 禁止全局滚动条 */
+  overflow: hidden;
 }
 
-/* 深色主题样式 */
+/* CSS 变量定义 - 浅色默认 */
+:root {
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #ffffff;
+  --text-primary: #262626;
+  --text-secondary: #595959;
+  --border-color: #e8e8e8;
+}
+
+/* 深色主题 CSS 变量 */
 [data-theme="dark"] {
-  --bg-color: #141414;
-  --text-color: #ffffff;
+  --bg-primary: #141414;
+  --bg-secondary: #1f1f1f;
+  --text-primary: #ffffff;
+  --text-secondary: #a6a6a6;
   --border-color: #434343;
-  --card-bg: #1f1f1f;
-  
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  
-  .ant-layout {
-    background: var(--bg-color);
-  }
-  
-  .ant-layout-content {
-    background: var(--bg-color);
-  }
-  
-  .ant-card {
-    background: var(--card-bg);
-    border-color: var(--border-color);
-    color: var(--text-color);
-  }
-  
-  .ant-modal-content {
-    background: var(--card-bg);
-    color: var(--text-color);
-  }
-  
-  .ant-input,
-  .ant-select-selector,
-  .ant-picker {
-    background: var(--bg-color);
-    border-color: var(--border-color);
-    color: var(--text-color);
-  }
-  
-  .ant-btn {
-    border-color: var(--border-color);
-  }
-  
+
+  /* 修正 body/html 背景，防止白边 */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+
+  /* 底部状态栏 */
   .app-footer {
     color: #a6a6a6;
+    border-top-color: var(--border-color);
   }
+
+  /* Toolbox 侧边栏等自定义组件 */
+  .toolbox-container {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+  }
+
+  .toolbox-sidebar {
+    background: var(--bg-secondary);
+    border-right-color: var(--border-color);
+  }
+
+  .toolbox-content {
+    background: var(--bg-primary);
+  }
+
+  .sidebar-header {
+    border-bottom-color: var(--border-color);
+    h2 { color: var(--text-primary) !important; }
+    p { color: var(--text-secondary) !important; }
+  }
+
+  /* 欢迎页 */
+  .welcome-page h1 { color: var(--text-primary) !important; }
+  .welcome-page p { color: var(--text-secondary) !important; }
+
+  /* 拖拽区域 */
+  .drop-zone, .select-area {
+    border-color: var(--border-color);
+    &:hover { border-color: #1890ff; background: rgba(24, 144, 255, 0.06); }
+  }
+
+  /* 字体颜色修正 */
+  .text-gray-800 { color: var(--text-primary) !important; }
+  .text-gray-700 { color: #d9d9d9 !important; }
+  .text-gray-600 { color: #bfbfbf !important; }
+  .text-gray-500 { color: #a6a6a6 !important; }
+  .text-gray-400 { color: #8c8c8c !important; }
 }
 
 .layout {
@@ -139,40 +166,33 @@ html, body, #app {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* 禁止布局滚动条 */
+  overflow: hidden;
 
-  /* 主内容区域 */
   .ant-layout {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    
+
     .ant-layout-content {
       flex: 1;
-      overflow: hidden; /* 禁止内容区域滚动条 */
+      overflow: hidden;
       display: flex;
       flex-direction: column;
     }
   }
 
-  /* 底部状态栏 */
   .app-footer {
     display: flex;
     justify-content: right;
     padding: 0 16px;
     height: 28px;
     line-height: 28px;
-    flex-shrink: 0; /* 防止底部状态栏被压缩 */
-    // background-color: #f0f0f0;
+    flex-shrink: 0;
     font-size: 14px;
     color: #666;
     font-style: italic;
   }
-}
-
-.site-layout .site-layout-background {
-  background: #fff;
 }
 
 .back-home-btn {

@@ -136,6 +136,7 @@
               type="info"
               show-icon
               class="mb-4"
+              v-if="!settingsStore.vtApiKey"
             />
 
             <a-form-item :label="t('settings.apiKey')">
@@ -150,6 +151,38 @@
                 {{ t('settings.apiKeyHint') }}
               </div>
             </a-form-item>
+
+            <!-- 账户信息 -->
+            <div v-if="userInfoLoading || userInfo || userInfoError" class="user-info-card">
+              <div v-if="userInfoLoading" class="user-info-loading">
+                <LoadingOutlined class="mr-1" spin />
+                {{ t('settings.vtUserInfoLoading') }}
+              </div>
+              <div v-else-if="userInfoError" class="user-info-error">
+                <CloseCircleOutlined class="mr-1" />
+                {{ userInfoError }}
+              </div>
+              <div v-else-if="userInfo">
+                <div class="user-info-title">
+                  <CheckCircleOutlined class="mr-1 text-green" />
+                  {{ t('settings.vtUserInfo') }}
+                </div>
+                <a-descriptions :column="2" size="small" bordered>
+                  <a-descriptions-item :label="t('settings.vtUserId')">
+                    <span class="font-mono">{{ userInfo.id }}</span>
+                  </a-descriptions-item>
+                  <a-descriptions-item :label="t('settings.vtUserType')">
+                    <a-tag color="blue">{{ userInfo.type }}</a-tag>
+                  </a-descriptions-item>
+                  <a-descriptions-item :label="t('settings.vtUserEmail')" :span="2">
+                    {{ userInfo.email || '—' }}
+                  </a-descriptions-item>
+                  <a-descriptions-item :label="t('settings.vtUserLastLogin')" :span="2">
+                    {{ userInfo.lastLogin ? formatTimestamp(userInfo.lastLogin) : '—' }}
+                  </a-descriptions-item>
+                </a-descriptions>
+              </div>
+            </div>
 
             <a-divider>{{ t('settings.concurrency') }}</a-divider>
 
@@ -219,7 +252,10 @@ import {
   GlobalOutlined,
   LogoutOutlined,
   EyeInvisibleOutlined,
-  WifiOutlined
+  WifiOutlined,
+  LoadingOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons-vue'
 import { useSettingsStore } from '../stores/settings'
 import { VTService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt'
@@ -249,12 +285,61 @@ const dnsResult = ref<{
   adminNeeded: boolean;
 } | null>(null)
 
+// VT 用户信息状态
+interface VTUserInfo {
+  id: string
+  email: string
+  type: string
+  lastLogin: number
+}
+const userInfo = ref<VTUserInfo | null>(null)
+const userInfoLoading = ref(false)
+const userInfoError = ref('')
+
+// 获取 VT 用户信息
+async function fetchUserInfo(apiKey: string) {
+  if (!apiKey) {
+    userInfo.value = null
+    userInfoError.value = ''
+    return
+  }
+  userInfoLoading.value = true
+  userInfoError.value = ''
+  userInfo.value = null
+  try {
+    const info = await VTService.GetUserInfo(apiKey)
+    console.log(info)
+    userInfo.value = info as VTUserInfo
+  } catch (e: any) {
+    const msg = e?.message || String(e)
+    if (msg.includes('invalid') || msg.includes('401') || msg.includes('403')) {
+      userInfoError.value = t('settings.vtUserInfoInvalid')
+    } else {
+      userInfoError.value = t('settings.vtUserInfoFailed')
+    }
+  } finally {
+    userInfoLoading.value = false
+  }
+}
+
+// 格式化 Unix 时间戳
+function formatTimestamp(ts: number): string {
+  return new Date(ts * 1000).toLocaleString()
+}
+
 watch(() => props.open, (newVal) => {
   visible.value = newVal
 })
 
 watch(visible, (newVal) => {
   emit('update:open', newVal)
+})
+
+// 切换到 virustotal tab 时自动加载用户信息
+watch(activeTab, (newVal) => {
+  if (newVal === 'virustotal' && settingsStore.vtApiKey && !userInfo.value && !userInfoLoading.value) {
+    fetchUserInfo(settingsStore.vtApiKey)
+  }
 })
 
 function handleClose() {
@@ -265,7 +350,7 @@ function openVirusTotalDocs() {
   window.open('https://docs.virustotal.com/reference/overview', '_blank')
 }
 
-// API Key 输入框失焦时保存到后端
+// API Key 输入框失焦时保存到后端并获取用户信息
 async function handleApiKeyBlur() {
   const apiKey = settingsStore.vtApiKey
   if (apiKey) {
@@ -276,6 +361,11 @@ async function handleApiKeyBlur() {
       console.error('Failed to save API Key:', error)
       message.error(t('settings.apiKeySaveFailed'))
     }
+    // 获取用户信息
+    await fetchUserInfo(apiKey)
+  } else {
+    userInfo.value = null
+    userInfoError.value = ''
   }
 }
 
@@ -495,5 +585,52 @@ async function flushDNS() {
 
 [data-theme="dark"] .dns-result pre {
   background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 用户信息卡片 */
+.user-info-card {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background: #fafafa;
+  font-size: 13px;
+}
+
+.user-info-loading {
+  color: #1890ff;
+  display: flex;
+  align-items: center;
+}
+
+.user-info-error {
+  color: #ff4d4f;
+  display: flex;
+  align-items: center;
+}
+
+.user-info-title {
+  font-weight: 600;
+  color: #52c41a;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.text-green {
+  color: #52c41a;
+}
+
+.font-mono {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+[data-theme="dark"] .user-info-card {
+  background: #1f1f1f;
+  border-color: #434343;
+}
+
+[data-theme="dark"] .user-info-title {
+  color: #73d13d;
 }
 </style>

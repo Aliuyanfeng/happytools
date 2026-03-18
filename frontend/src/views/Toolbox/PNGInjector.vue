@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { FileImageOutlined } from '@ant-design/icons-vue'
 import { useI18n } from 'vue-i18n'

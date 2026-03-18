@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-
+	"log"
 	"github.com/Aliuyanfeng/happytools/backend/store"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -62,10 +62,69 @@ func GetVTService() *VTService {
 	return vtServiceInstance
 }
 
+// UserInfo VirusTotal 用户基础信息
+type UserInfo struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	Type      string `json:"type"`
+	LastLogin int64  `json:"lastLogin"`
+}
+
+// GetUserInfo 获取当前 API Key 对应的用户信息
+func (v *VTService) GetUserInfo(apiKey string) (*UserInfo, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("API key is empty")
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.virustotal.com/api/v3/users/%s", apiKey), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+	req.Header.Set("x-apikey", apiKey)
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return nil, fmt.Errorf("invalid API key")
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Data struct {
+			ID         string `json:"id"`
+			Type       string `json:"type"`
+			Attributes struct {
+				Email     string `json:"email"`
+				LastLogin int64  `json:"last_login"`
+			} `json:"attributes"`
+		} `json:"data"`
+	}
+	log.Printf(fmt.Sprintf("%+v", json.NewDecoder(resp.Body)))
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %v", err)
+	}
+
+	return &UserInfo{
+		ID:        result.Data.ID,
+		Type:      result.Data.Type,
+		Email:     result.Data.Attributes.Email,
+		LastLogin: result.Data.Attributes.LastLogin,
+	}, nil
+}
+
 // SetAPIKey sets the API key for VirusTotal
-func (v *VTService) SetAPIKey(apiKey string) {
+func (v *VTService) SetAPIKey(apiKey string) error {
 	fmt.Printf("当前API-KEY=%s", apiKey)
 	v.apiKey = apiKey
+	return nil
 }
 
 // GetAPIKey 获取当前 API Key
@@ -74,14 +133,15 @@ func (v *VTService) GetAPIKey() string {
 }
 
 // SetConcurrency 设置并发扫描数
-func (v *VTService) SetConcurrency(concurrency int) {
+func (v *VTService) SetConcurrency(concurrency int) error {
 	if concurrency < 1 {
 		concurrency = 1
 	}
 	if concurrency > 10 {
-		concurrency = 10 // 最大并发数限制
+		concurrency = 10
 	}
 	v.concurrency = concurrency
+	return nil
 }
 
 // GetConcurrency 获取并发扫描数
