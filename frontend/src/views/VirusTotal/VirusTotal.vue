@@ -978,6 +978,7 @@ const formatQuotaNum = (n: number) => n >= 1000000 ? (n / 1000000).toFixed(1) + 
 
 const loadQuota = async () => {
   if (!settingsStore.vtApiKey) return
+  await VTService.SetAPIKey(settingsStore.vtApiKey)
   quotaLoading.value = true
   try {
     const q = await VTService.GetAPIQuota()

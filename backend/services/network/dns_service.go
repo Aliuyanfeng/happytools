@@ -6,11 +6,14 @@ package network
 
 import (
 	"bytes"
+	"io"
 	"os/exec"
 	"runtime"
 	"strings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 // DNSService DNS服务
@@ -65,7 +68,19 @@ func (d *DNSService) FlushDNS() (*DNSFlushResult, error) {
 	cmd.Stderr = &output
 
 	err := cmd.Run()
-	outputStr := strings.TrimSpace(output.String())
+
+	// Windows 下 ipconfig 输出为 GBK，转换为 UTF-8
+	var outputStr string
+	if runtime.GOOS == "windows" {
+		decoded, decErr := io.ReadAll(transform.NewReader(bytes.NewReader(output.Bytes()), simplifiedchinese.GBK.NewDecoder()))
+		if decErr == nil {
+			outputStr = strings.TrimSpace(string(decoded))
+		} else {
+			outputStr = strings.TrimSpace(output.String())
+		}
+	} else {
+		outputStr = strings.TrimSpace(output.String())
+	}
 
 	if err != nil {
 		// 检查是否是权限问题

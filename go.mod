@@ -7,6 +7,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.74
 	go.etcd.io/bbolt v1.4.3
+	golang.org/x/text v0.35.0
 )
 
 require (
@@ -53,6 +54,5 @@ require (
 	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
