@@ -71,6 +71,24 @@ export const modules: ModuleConfig[] = [
     icon: 'CalendarOutlined',
     theme: 'cyan',
     tags: ['日报', '日历', '工作记录']
+  },
+  {
+    id: 'gitConfig',
+    nameKey: 'home.modules.gitConfig',
+    description: '',
+    path: '/git-config',
+    icon: 'BranchesOutlined',
+    theme: 'green',
+    tags: []
+  },
+  {
+    id: 'makefileEditor',
+    nameKey: 'home.modules.makefileEditor',
+    description: '',
+    path: '/makefile-editor',
+    icon: 'FileTextOutlined',
+    theme: 'orange',
+    tags: []
   }
 ]
 

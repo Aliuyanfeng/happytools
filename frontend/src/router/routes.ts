@@ -97,6 +97,22 @@ const routes: Array<RouteRecordRaw> = [
             title: '日报管理'
         },
         component: DailyReport
+    },
+    {
+        path: '/git-config',
+        name: 'git-config',
+        meta: {
+            title: 'Git 配置管理'
+        },
+        component: () => import('../views/GitConfig/GitConfig.vue')
+    },
+    {
+        path: '/makefile-editor',
+        name: 'makefile-editor',
+        meta: {
+            title: 'Makefile 编辑器'
+        },
+        component: () => import('../views/MakefileEditor/MakefileEditor.vue')
     }
 ];
 
