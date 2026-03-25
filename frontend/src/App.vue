@@ -186,12 +186,15 @@ html, body, #app {
     display: flex;
     justify-content: right;
     padding: 0 16px;
-    height: 28px;
-    line-height: 28px;
+    height: 26px;
+    line-height: 26px;
     flex-shrink: 0;
-    font-size: 14px;
-    color: #666;
+    font-size: 11px;
+    color: #94a3b8;
     font-style: italic;
+    background: rgba(255,255,255,0.8);
+    border-top: 1px solid rgba(99,102,241,0.08);
+    backdrop-filter: blur(10px);
   }
 }
 

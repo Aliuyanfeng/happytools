@@ -14,7 +14,7 @@
         <PushpinOutlined class="icon" />
       </button>
       <button class="title-btn minimize" :title="t('app.minimize')" @click="minimize"><span class="icon">−</span></button>
-      <!-- <button class="title-btn maximize" :title="t('app.maximize')" @click="toggleMaximize"><span class="icon">▢</span></button> -->
+      <button class="title-btn maximize" :title="t('app.maximize')" @click="toggleMaximize"><span class="icon">▢</span></button>
       <button class="title-btn close" :title="t('app.close')" @click="close"><span class="icon">✕</span></button>
     </div>
 
@@ -98,16 +98,35 @@ onMounted(() => {
 
 
 .titlebar {
-  height: 36px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
-  background: linear-gradient(90deg, #eff1f3, #4285dc);
-  color: #323131;
-  -webkit-app-region: drag; /* 允许拖拽窗口 */
+  padding: 0 10px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #1e1b4b;
+  -webkit-app-region: drag;
   user-select: none;
   --wails-draggable: drag;
+  border-bottom: 1px solid rgba(99,102,241,0.1);
+  position: relative;
+  z-index: 100;
+}
+
+.titlebar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #6366f1, #ec4899, #06b6d4, #10b981, #f97316, #6366f1);
+  background-size: 300% 100%;
+  animation: rainbow 5s linear infinite;
+}
+@keyframes rainbow {
+  from { background-position: 0% 0%; }
+  to   { background-position: 300% 0%; }
 }
 
 .titlebar-left {
@@ -139,51 +158,47 @@ onMounted(() => {
 }
 
 .title-btn {
-  height: 30px;
-  min-width: 40px;
+  height: 28px;
+  min-width: 36px;
   padding: 0;
   border: none;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.02);
-  color: #ffffff;
+  border-radius: 7px;
+  background: transparent;
+  color: #94a3b8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  -webkit-app-region: no-drag; /* 按钮区域不触发拖拽 */
-  transition: background 0.12s ease, transform 0.08s ease;
-  box-shadow: none;
+  -webkit-app-region: no-drag;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
-/* 更明显的 hover 效果 */
 .title-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(99,102,241,0.08);
+  color: #4f46e5;
   transform: translateY(-1px);
 }
 
-/* 设置按钮特殊样式 */
 .title-btn.settings:hover {
-  background: rgba(24, 144, 255, 0.8);
-  color: #ffffff;
+  background: rgba(99,102,241,0.1);
+  color: #4f46e5;
 }
 
-/* 置顶按钮特殊样式 */
 .title-btn.pin:hover {
-  background: rgba(250, 173, 20, 0.8);
-  color: #ffffff;
+  background: rgba(249,115,22,0.1);
+  color: #ea580c;
 }
 
 .title-btn.pin.active {
-  background: rgba(250, 173, 20, 0.9);
-  color: #ffffff;
+  background: rgba(249,115,22,0.12);
+  color: #ea580c;
 }
 
-/* 关闭按钮特殊样式 */
 .title-btn.close:hover {
-  background: #e74c3c;
-  color: #ffffff;
+  background: rgba(239,68,68,0.1);
+  color: #dc2626;
 }
 
 /* 更清晰的图标 */

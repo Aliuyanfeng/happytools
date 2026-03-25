@@ -1,164 +1,258 @@
-<template>
-  <div class="desktop-app">
-    <!-- 主内容区 -->
-    <main class="app-main">
-      <a-row :gutter="24">
-        <a-col :span="8">
-          <a-spin :spinning="memoryUsage === 0 " tip="Loading...">
-            <a-card :bordered="false">
-              <template #title>
-                <div class="flex items-center justify-between">
-                  <span>💾 内存</span>
-                  <span class="ml-5 text-xs">
-                    Used：{{ memoryUsed }}
-                  </span>
-                </div>
-              </template>
-              <div class="relative text-center h-28">
-                <a-progress type="dashboard" :stroke-color="getProgressColor(memoryUsage)" :strokeWidth="8"
-                            :percent="memoryUsage"/>
-              </div>
-            </a-card>
-          </a-spin>
-        </a-col>
-        <a-col :span="8">
-          <a-spin :spinning="diskUsage.used_percent === 0 " tip="Loading...">
-            <a-card :bordered="false">
-              <template #title>
-                <div class="flex items-center justify-between">
-                  <span>💿 硬盘</span>
-                  <span class="ml-5 text-xs">
-                  Used：{{ formatBytes(diskUsage.used) }}
-                </span>
-                </div>
-              </template>
-              <div class="flex flex-col items-center justify-around h-28">
-                <a-progress type="circle" :stroke-color="getProgressColor(diskUsage.used_percent)" :strokeWidth="8"
-                            status="active" :percent="diskUsage.used_percent"/>
-              </div>
-            </a-card>
-          </a-spin>
-        </a-col>
-        <a-col :span="8">
-          <a-spin :spinning="memoryUsage === 0 " tip="Loading...">
-            <a-card :bordered="false">
-              <template #title>
-                <div class="flex items-center justify-between">
-                  <span>🚀 网卡</span>
-                  <div class="flex items-center gap-2">
-                    <a-tooltip :title="isCurrentFavorite() ? '取消收藏' : '收藏当前网卡'">
-                      <a-button
-                          type="text"
-                          size="small"
-                          @click="isCurrentFavorite() ? handleUnfavorite() : handleFavorite()"
-                          :class="{'favorite-active': isCurrentFavorite()}"
-                      >
-                        <template #icon>
-                          <span v-if="isCurrentFavorite()">⭐</span>
-                          <span v-else>☆</span>
-                        </template>
-                      </a-button>
-                    </a-tooltip>
-                    <a-select
-                        ref="select"
-                        v-model:value="currentNetworkInterface"
-                        style="width: 100px"
-                        size="small"
-                        @focus="focus"
-                        @change="handleChange"
-                    >
-                      <a-select-option v-for="item in networkInterfaces" :key="item.name" :value="item.name">{{
-                          item.name
-                        }}
-                      </a-select-option>
-                    </a-select>
-                  </div>
-                </div>
-              </template>
-              <div class="h-28">
-                <template v-for="(item,index) in networkInterfaces" :key="index">
-                  <div v-if="item.name == currentNetworkInterface">
-                    <a-descriptions size="small" :column="1">
-                      <a-descriptions-item label="IP地址">
-                        <a-tooltip :title=item.name>
-                          <a-tag class="interface-name">{{ item.ipv4 }}</a-tag>
-                        </a-tooltip>
-                        <a-tag color="success" v-if="item.isUp">已连接</a-tag>
-                        <a-tag color="error" v-else>未连接</a-tag>
-                      </a-descriptions-item>
-                      <a-descriptions-item label="MAC地址" class="font-bold">
-                        {{ item.mac }}
-                      </a-descriptions-item>
-                      <a-descriptions-item label="Bytes">
-                        <div class="text-[12px]">
-                          <a-tag color="#87CEEB">RX</a-tag>
-                          {{ formatBytes(item.bytesRecv) }}
-                        </div>
-                        <div class="ml-2 text-[12px]">
-                          <a-tag color="#FF9800" >TX</a-tag>
-                          {{ formatBytes(item.bytesSent) }}
-                        </div>
-                      </a-descriptions-item>
-                      <a-descriptions-item label="Packets">
-                        <div class="text-[12px]">
-                          <a-tag color="#87CEEB">RX</a-tag>
-                          {{ item.packetsRecv }}
-                        </div>
-                        <div class="ml-2 text-[12px]">
-                          <a-tag color="#FF9800" class="text-[12px]">TX</a-tag>
-                          {{ item.packetsSent }}
-                        </div>
-                      </a-descriptions-item>
-                    </a-descriptions>
-                  </div>
-                </template>
-              </div>
-            </a-card>
-          </a-spin>
-        </a-col>
-      </a-row>
-      <a-row :gutter="24" class="mt-5">
-        <a-col :span="12">
-          <a-spin :spinning="cpuUsage?.length ===0" tip="Loading...">
-            <a-card title="🖥️ CPU负载情况" :bordered="false" size="small" class="box-large" >
-              <div class="flex flex-wrap items-center justify-between h-full">
-                <div class="flex items-center justify-between w-3/6 mt-4" v-for="(item, index) in cpuUsage"
-                     :key="index">
-                  <span class="circle_number">{{ index }}</span>
-                  <a-progress :steps="10" :size="[10, 10]" :percent="item"
-                              :stroke-color="getProgressColor(item)" class="m-0 ml-2"/>
-                </div>
-              </div>
-            </a-card>
-          </a-spin>
-        </a-col>
-        <a-col :span="12">
-          <a-spin :spinning="cpuUsage?.length ===0" tip="Loading...">
-            <a-card title="ℹ️ 主机详情" :bordered="false" size="small" class="box-large" >
-              <a-descriptions :column="1" bordered>
-                <a-descriptions-item label="设备名称" :span="1">{{ hardwareInfo.hostname }}</a-descriptions-item>
-                <a-descriptions-item label="版本" :span="1">{{ hardwareInfo.platform }}</a-descriptions-item>
-                <a-descriptions-item label="处理器" :span="1">{{ hardwareInfo.modelName }}</a-descriptions-item>
-                <a-descriptions-item label="内存" :span="1">{{ memoryTotal }}</a-descriptions-item>
-                <a-descriptions-item label="系统版本" :span="1">{{ hardwareInfo.kernel_version }}</a-descriptions-item>
-                <a-descriptions-item label="系统架构" :span="1">{{ hardwareInfo.architecture }}</a-descriptions-item>
-                <a-descriptions-item label="存储" :span="1">{{ formatBytes(diskUsage.total) }}</a-descriptions-item>
-              </a-descriptions>
-            </a-card>
-          </a-spin>
-        </a-col>
-      </a-row>
-    </main>
+﻿<template>
+  <div class="db">
 
-    <!-- 底部状态栏 -->
-    <!--    <footer class="app-footer">-->
-    <!--      <div class="runtime-info">运行时间: {{ runtime }}</div>-->
-    <!--      <div class="copyright">© 2023 Happy Tools. All rights reserved.</div>-->
-    <!--    </footer>-->
+    <!-- ══ 左侧：核心指标竖栏 ══ -->
+    <aside class="db-aside">
 
-    <!-- 设置对话框 -->
+      <!-- 主机名 -->
+      <div class="aside-host">
+        <div class="host-dot" :class="{ online: hardwareInfo.hostname }" />
+        <div>
+          <div class="host-name">{{ hardwareInfo.hostname || 'Loading…' }}</div>
+          <div class="host-os">{{ hardwareInfo.platform || '—' }}</div>
+        </div>
+      </div>
+
+      <div class="aside-divider" />
+
+      <!-- 内存环形 -->
+      <div class="metric-block">
+        <div class="metric-header">
+          <span class="metric-label">内存</span>
+          <span class="metric-val">{{ memoryUsed }}</span>
+        </div>
+        <div class="ring-wrap">
+          <a-progress
+            type="circle"
+            :percent="memoryUsage"
+            :stroke-color="ringColor(memoryUsage)"
+            :stroke-width="8"
+            :width="52"
+            :format="p => p + '%'"
+          />
+        </div>
+        <div class="metric-sub">共 {{ memoryTotal }}</div>
+      </div>
+
+      <div class="aside-divider" />
+
+      <!-- 硬盘环形 -->
+      <div class="metric-block">
+        <div class="metric-header">
+          <span class="metric-label">硬盘</span>
+          <span class="metric-val">{{ formatBytes(diskUsage.used) }}</span>
+        </div>
+        <div class="ring-wrap">
+          <a-progress
+            type="circle"
+            :percent="diskUsage.used_percent"
+            :stroke-color="ringColor(diskUsage.used_percent)"
+            :stroke-width="8"
+            :width="52"
+            :format="p => p + '%'"
+          />
+        </div>
+        <div class="metric-sub">共 {{ formatBytes(diskUsage.total) }}</div>
+      </div>
+
+      <div class="aside-divider" />
+
+      <!-- 网卡 -->
+      <div class="metric-block net-block">
+        <div class="metric-header">
+          <span class="metric-label">网卡</span>
+          <div class="net-ctrl">
+            <a-button type="text" size="small" @click="isCurrentFavorite() ? handleUnfavorite() : handleFavorite()" :class="{ 'fav-on': isCurrentFavorite() }">
+              {{ isCurrentFavorite() ? '⭐' : '☆' }}
+            </a-button>
+            <a-select v-model:value="currentNetworkInterface" size="small" style="width:90px" @change="handleChange">
+              <a-select-option v-for="n in networkInterfaces" :key="n.name" :value="n.name">{{ n.name }}</a-select-option>
+            </a-select>
+          </div>
+        </div>
+        <template v-for="n in networkInterfaces" :key="n.name">
+          <div v-if="n.name === currentNetworkInterface" class="net-detail">
+            <!-- 网卡名称 + 状态 -->
+            <div class="nd-row">
+              <span class="nd-k">名称</span>
+              <span class="nd-v mono">{{ n.name }}</span>
+              <span class="nd-tag" :class="n.isUp ? 'up' : 'down'">{{ n.isUp ? '在线' : '离线' }}</span>
+            </div>
+            <!-- IP -->
+            <div class="nd-row">
+              <span class="nd-k">IP</span>
+              <span class="nd-v">{{ n.ipv4 }}</span>
+            </div>
+            <!-- MAC -->
+            <div class="nd-row">
+              <span class="nd-k">MAC</span>
+              <span class="nd-v mono">{{ n.mac }}</span>
+            </div>
+
+            <!-- 实时速率 -->
+            <div class="nd-section-label">实时速率</div>
+            <div class="nd-traffic">
+              <div class="traf-item rx">
+                <span class="traf-arrow">↓</span>
+                <div>
+                  <div class="traf-num">{{ formatBytes(n.bytesRecvRate) }}/s</div>
+                  <div class="traf-label">接收速率</div>
+                </div>
+              </div>
+              <div class="traf-item tx">
+                <span class="traf-arrow">↑</span>
+                <div>
+                  <div class="traf-num">{{ formatBytes(n.bytesSentRate) }}/s</div>
+                  <div class="traf-label">发送速率</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 累计流量 -->
+            <div class="nd-section-label">累计流量</div>
+            <div class="nd-traffic">
+              <div class="traf-item rx">
+                <span class="traf-arrow">↓</span>
+                <div>
+                  <div class="traf-num">{{ formatBytes(n.bytesRecv) }}</div>
+                  <div class="traf-label">已接收</div>
+                </div>
+              </div>
+              <div class="traf-item tx">
+                <span class="traf-arrow">↑</span>
+                <div>
+                  <div class="traf-num">{{ formatBytes(n.bytesSent) }}</div>
+                  <div class="traf-label">已发送</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 包数统计 -->
+            <div class="nd-section-label">数据包</div>
+            <div class="nd-traffic">
+              <div class="traf-item rx">
+                <span class="traf-arrow">↓</span>
+                <div>
+                  <div class="traf-num">{{ n.packetsRecv }}</div>
+                  <div class="traf-label">接收包</div>
+                </div>
+              </div>
+              <div class="traf-item tx">
+                <span class="traf-arrow">↑</span>
+                <div>
+                  <div class="traf-num">{{ n.packetsSent }}</div>
+                  <div class="traf-label">发送包</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </aside>
+
+    <!-- ══ 右侧：CPU + 主机详情 ══ -->
+    <div class="db-main">
+
+      <!-- CPU 热力图区 -->
+      <div class="panel cpu-panel">
+        <div class="panel-header">
+          <span class="panel-title">CPU 核心负载</span>
+          <span class="panel-sub">{{ hardwareInfo.modelName }}</span>
+          <div class="view-toggle">
+            <button class="vt-btn" :class="{ active: cpuView === 'large' }" @click="cpuView = 'large'" title="大视图">
+              <span class="vt-icon">⊞</span>
+            </button>
+            <button class="vt-btn" :class="{ active: cpuView === 'small' }" @click="cpuView = 'small'" title="小视图">
+              <span class="vt-icon">⊟</span>
+            </button>
+          </div>
+        </div>
+        <div class="cpu-heatmap" :class="cpuView === 'large' ? 'view-large' : 'view-small'">
+          <div
+            v-for="(pct, idx) in cpuUsage"
+            :key="idx"
+            class="cpu-core"
+            :class="cpuView"
+            :style="{ '--pct': pct, '--color': heatColor(pct) }"
+          >
+            <template v-if="cpuView === 'large'">
+              <!-- 大视图：圆形进度 + 标签 -->
+              <div class="core-ring">
+                <svg viewBox="0 0 36 36" class="core-svg">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" stroke-width="3" />
+                  <circle
+                    cx="18" cy="18" r="15" fill="none"
+                    :stroke="heatColor(pct)" stroke-width="3"
+                    stroke-linecap="round"
+                    :stroke-dasharray="`${pct * 0.942} 94.2`"
+                    stroke-dashoffset="23.55"
+                    style="transition: stroke-dasharray 0.6s ease"
+                  />
+                </svg>
+                <span class="core-ring-pct">{{ pct }}%</span>
+              </div>
+              <span class="core-label-lg">C{{ idx }}</span>
+            </template>
+            <template v-else>
+              <!-- 小视图：条形 + 文字 -->
+              <div class="core-bar-bg">
+                <div class="core-bar-fill" />
+              </div>
+              <div class="core-meta">
+                <span class="core-idx">C{{ idx }}</span>
+                <span class="core-pct">{{ pct }}%</span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主机详情卡片 -->
+      <div class="panel host-panel">
+        <div class="panel-header">
+          <span class="panel-title">主机详情</span>
+        </div>
+        <div class="host-grid">
+          <div class="hg-item">
+            <span class="hg-k">设备名称</span>
+            <span class="hg-v">{{ hardwareInfo.hostname }}</span>
+          </div>
+          <div class="hg-item">
+            <span class="hg-k">操作系统</span>
+            <span class="hg-v">{{ hardwareInfo.platform }}</span>
+          </div>
+          <div class="hg-item">
+            <span class="hg-k">处理器</span>
+            <span class="hg-v">{{ hardwareInfo.modelName }}</span>
+          </div>
+          <div class="hg-item">
+            <span class="hg-k">内存</span>
+            <span class="hg-v">{{ memoryTotal }}</span>
+          </div>
+          <div class="hg-item">
+            <span class="hg-k">内核版本</span>
+            <span class="hg-v">{{ hardwareInfo.kernel_version }}</span>
+          </div>
+          <div class="hg-item">
+            <span class="hg-k">系统架构</span>
+            <span class="hg-v">{{ hardwareInfo.architecture }}</span>
+          </div>
+          <div class="hg-item">
+            <span class="hg-k">存储总量</span>
+            <span class="hg-v">{{ formatBytes(diskUsage.total) }}</span>
+          </div>
+          <div class="hg-item">
+            <span class="hg-k">已用存储</span>
+            <span class="hg-v">{{ formatBytes(diskUsage.used) }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
     <a-modal v-model:open="settingsVisible" title="设置" @ok="saveSettings" @cancel="closeSettings">
-      <settings-panel :settings="settings" @update:settings="updateSettings"/>
+      <settings-panel :settings="settings" @update:settings="updateSettings" />
     </a-modal>
   </div>
 </template>
@@ -203,6 +297,7 @@ const settings = reactive({
 });
 
 const systemInfoInterval = ref<number | null>(null)
+const cpuView = ref<'large' | 'small'>('large')
 // 生命周期
 onMounted(async () => {
   console.log('mount');
@@ -360,6 +455,21 @@ const getProgressColor = (numberPercent: any) => {
   return color
 }
 
+// 环形进度颜色（渐变）
+const ringColor = (pct: any) => {
+  if ((pct ?? 0) < 50)  return { '0%': '#34d399', '100%': '#10b981' }
+  if ((pct ?? 0) < 80)  return { '0%': '#fbbf24', '100%': '#f59e0b' }
+  return { '0%': '#f87171', '100%': '#ef4444' }
+}
+
+// CPU 热力颜色
+const heatColor = (pct: number) => {
+  if (pct < 30)  return '#34d399'
+  if (pct < 60)  return '#60a5fa'
+  if (pct < 80)  return '#fbbf24'
+  return '#f87171'
+}
+
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return "0B";
 
@@ -388,41 +498,377 @@ const formatBytes = (bytes: number) => {
 </script>
 
 <style scoped>
-/* 基础样式 */
-.desktop-app {
+/* ── 根容器：左右分栏 ── */
+.db {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  background: #f0f4ff;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* ══════════════════════════════
+   左侧竖栏
+══════════════════════════════ */
+.db-aside {
+  width: 240px;
+  flex-shrink: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #f5f5f5;
-  justify-content: space-between;
-  /* height: 100%; */
+  gap: 0;
+  background: #ffffff;
+  border-right: 1px solid #eef0f6;
+  overflow: hidden;
+  padding: 14px 14px;
 }
 
-/* 主内容区 */
-.app-main {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-
-  .interface-name {
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .box-large {
-    height: 445px;
-  }
+/* 主机名区 */
+.aside-host {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
-
-.circle_number {
-  width: 20px;
-  line-height: 20px;
-  background-color: #fff;
-  color: #999;
+.host-dot {
+  width: 8px; height: 8px;
   border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.host-dot.online {
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52,211,153,0.2);
+}
+.host-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e1b4b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.host-os {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.favorite-active {
-  color: #faad14;
+.aside-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 10px 0;
+  flex-shrink: 0;
+}
+
+/* 指标块 */
+.metric-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.metric-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.metric-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+.ring-wrap {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.metric-sub {
+  font-size: 11px;
+  color: #cbd5e1;
+  text-align: center;
+}
+
+/* 网卡 */
+.net-block { gap: 6px; flex: 1; min-height: 0; overflow: hidden; }
+.net-ctrl { display: flex; align-items: center; gap: 4px; }
+.fav-on { color: #f59e0b; }
+
+.net-detail { display: flex; flex-direction: column; gap: 4px; overflow: hidden; flex: 1; min-height: 0; }
+.nd-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-top: 0;
+}
+.nd-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nd-k {
+  font-size: 10px;
+  color: #94a3b8;
+  width: 28px;
+  flex-shrink: 0;
+}
+.nd-v {
+  font-size: 11px;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.mono { font-family: monospace; }
+.nd-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.nd-tag.up   { background: #dcfce7; color: #16a34a; }
+.nd-tag.down { background: #fee2e2; color: #dc2626; }
+
+.nd-traffic {
+  display: flex;
+  gap: 6px;
+}
+.traf-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 10px;
+}
+.traf-item.rx { background: #eff6ff; }
+.traf-item.tx { background: #fff7ed; }
+.traf-arrow {
+  font-size: 14px;
+  font-weight: 700;
+}
+.traf-item.rx .traf-arrow { color: #3b82f6; }
+.traf-item.tx .traf-arrow { color: #f97316; }
+.traf-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+}
+.traf-label {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* ══════════════════════════════
+   右侧主区
+══════════════════════════════ */
+.db-main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+/* 通用面板 */
+.panel {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #eef0f6;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e1b4b;
+  white-space: nowrap;
+}
+.panel-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* CPU 热力图 */
+.cpu-panel { flex: 1; min-height: 0; }
+
+/* 视图切换按钮 */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.vt-btn {
+  width: 26px; height: 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+.vt-btn:hover { background: #f1f5f9; color: #475569; }
+.vt-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+.vt-icon { line-height: 1; }
+
+/* 网格容器 */
+.cpu-heatmap {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  align-content: start;
+}
+.view-large { grid-template-columns: repeat(5, 1fr); }
+.view-small { grid-template-columns: repeat(8, 1fr); }
+
+/* 核心卡片基础 */
+.cpu-core {
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+.cpu-core:hover {
+  border-color: var(--color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color) 12%, transparent);
+}
+
+/* ── 大视图 ── */
+.cpu-core.large {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 10px 8px 10px;
+}
+.core-ring {
+  position: relative;
+  width: 52px; height: 52px;
+}
+.core-svg {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.core-ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color);
+}
+.core-label-lg {
+  position: absolute;
+  top: 7px;
+  left: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+/* ── 小视图 ── */
+.cpu-core.small {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 7px 6px;
+}
+.core-bar-bg {
+  height: 3px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.core-bar-fill {
+  height: 100%;
+  width: calc(var(--pct) * 1%);
+  background: var(--color);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.core-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.core-idx { font-size: 9px; color: #94a3b8; font-weight: 600; }
+.core-pct { font-size: 10px; font-weight: 700; color: var(--color); }
+
+/* 主机详情 */
+.host-panel { flex-shrink: 0; }
+
+.host-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.hg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
+}
+.hg-item:nth-child(even) { border-right: none; }
+.hg-item:nth-last-child(-n+2) { border-bottom: none; }
+
+.hg-k {
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.hg-v {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
