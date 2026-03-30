@@ -112,24 +112,40 @@ function toggleMode() {
 }
 
 async function handleRawApply(text: string) {
-  if (!store.currentPath) {
-    message.warning(t('makefileEditor.noFileOpen'))
+  // 有文件路径：保存到磁盘再重新解析
+  if (store.currentPath) {
+    try {
+      const { SaveRawText, OpenFile } = await import(
+        '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/makefile/makefileservice.js'
+      )
+      await SaveRawText(store.currentPath, text)
+      const doc = await OpenFile(store.currentPath)
+      store.currentDoc = doc
+      store.isDirty = false
+      isRawMode.value = false
+    } catch (e: any) {
+      message.error(e?.message ?? t('makefileEditor.applyToVisual'))
+    }
     return
   }
-  try {
-    // Save raw text to disk then re-parse via backend (req 7.2)
-    const { SaveRawText, OpenFile } = await import(
-      '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/makefile/makefileservice.js'
-    )
-    await SaveRawText(store.currentPath, text)
-    const doc = await OpenFile(store.currentPath)
-    store.currentDoc = doc
-    store.isDirty = false
-    isRawMode.value = false
-  } catch (e: any) {
-    message.error(e?.message ?? t('makefileEditor.applyToVisual'))
-    // Stay in raw mode on error so user doesn't lose edits
+
+  // 无文件路径（如模板新建未保存）：用后端解析原始文本
+  if (store.currentDoc) {
+    try {
+      const { ParseRawText } = await import(
+        '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/makefile/makefileservice.js'
+      )
+      const doc = await ParseRawText(text)
+      store.currentDoc = doc
+      store.isDirty = true
+      isRawMode.value = false
+    } catch (e: any) {
+      message.error(e?.message ?? t('makefileEditor.applyToVisual'))
+    }
+    return
   }
+
+  message.warning(t('makefileEditor.noFileOpen'))
 }
 
 // ── Right panel: TargetForm state ──────────────────────────────────────────

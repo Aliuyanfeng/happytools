@@ -126,6 +126,11 @@ func (s *MakefileService) SaveRawText(path string, content string) error {
 	return nil
 }
 
+// ParseRawText 将原始文本内容解析为结构化 MakefileDoc，不写入磁盘。
+func (s *MakefileService) ParseRawText(content string) (*MakefileDoc, error) {
+	return Parse(content)
+}
+
 // OpenFileDialog 打开系统文件选择对话框，过滤 Makefile/makefile/*.mk 文件。
 func (s *MakefileService) OpenFileDialog() string {
 	result, err := s.app.Dialog.OpenFile().

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="home">
     <!-- 背景光晕 -->
     <div class="aurora">
@@ -32,30 +32,34 @@
       </div>
     </div>
 
-    <!-- 右侧：功能卡片（不规则布局） -->
+    <!-- 右侧：功能卡片 -->
     <div class="panel-right">
       <div class="right-header">
         <span class="right-title">{{ t('home.featureEntry') }}</span>
         <span class="right-count">{{ modules.length }} 个工具</span>
       </div>
-      <div class="bento-grid">
+      <div class="card-grid">
         <div
           v-for="(module, i) in modules"
           :key="module.id"
           class="card"
-          :class="[`c-${module.theme}`, `slot-${i}`]"
-          :style="{ animationDelay: `${i * 55}ms` }"
+          :class="`c-${module.theme}`"
+          :style="{ animationDelay: `${i * 50}ms` }"
           @mouseenter="onEnter"
           @mouseleave="onLeave"
           @click="go(module.path)"
         >
-          <div class="card-top-line" />
-          <div class="card-corner" />
+          <div class="card-spot" />
+          <!-- 右侧大号装饰图标 -->
+          <div class="card-deco">
+            <component :is="getIconComponent(module.icon)" />
+          </div>
+          <!-- 左侧内容 -->
           <div class="card-icon-wrap">
             <component :is="getIconComponent(module.icon)" />
           </div>
           <span class="card-name">{{ t(module.nameKey) }}</span>
-          <div class="card-spot" />
+          <ArrowRightOutlined class="card-arrow" />
         </div>
       </div>
     </div>
@@ -69,7 +73,7 @@ import { useI18n } from 'vue-i18n'
 import {
   DashboardOutlined, CheckCircleOutlined, ToolOutlined,
   SafetyOutlined, ApartmentOutlined, CalendarOutlined,
-  BranchesOutlined, FileTextOutlined,
+  BranchesOutlined, FileTextOutlined, ArrowRightOutlined,
 } from '@ant-design/icons-vue'
 import { modules } from '@/config/modules'
 
@@ -94,6 +98,7 @@ const features = [
 function onEnter(e: MouseEvent) {
   const card = e.currentTarget as HTMLElement
   const spot = card.querySelector('.card-spot') as HTMLElement
+
   function move(ev: MouseEvent) {
     const r = card.getBoundingClientRect()
     const x = ev.clientX - r.left
@@ -103,11 +108,12 @@ function onEnter(e: MouseEvent) {
     spot.style.opacity = '1'
     const rx = ((y / r.height) - 0.5) * -10
     const ry = ((x / r.width)  - 0.5) *  10
-    card.style.transform = `translateY(-5px) scale(1.03) rotateX(${rx}deg) rotateY(${ry}deg)`
+    card.style.transform = `translateY(-6px) scale(1.06) rotateX(${rx}deg) rotateY(${ry}deg)`
   }
-  card.addEventListener('mousemove', move);
-  (card as any)._move = move
+  card.addEventListener('mousemove', move)
+  ;(card as any)._move = move
 }
+
 function onLeave(e: MouseEvent) {
   const card = e.currentTarget as HTMLElement
   const spot = card.querySelector('.card-spot') as HTMLElement
@@ -325,175 +331,142 @@ const greetingText = computed(() => {
 .right-title { font-size: 15px; font-weight: 700; color: #1e1b4b; white-space: nowrap; }
 .right-count { font-size: 11px; color: #cbd5e1; white-space: nowrap; }
 
-/* 卡片网格 */
-.bento-grid {
+/* 等高均匀网格 */
+.card-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-rows: 1fr;
   gap: 10px;
   overflow: hidden;
 }
 
-/* 不规则 slot 分配（8个模块）
-   col: 1  2  3  4  5  6
-   row1: [  0  ][  1  ][  2  ]
-   row2: [  0  ][     3     ]
-   row3: [4][  5  ][  6  ][7]
-   row4: [4][     8(空)   ][7]  → slot-5/6 各自跨2行
-*/
-.slot-0 { grid-column: 1 / 3; grid-row: 1 / 3; }
-.slot-1 { grid-column: 3 / 5; grid-row: 1 / 2; }
-.slot-2 { grid-column: 5 / 7; grid-row: 1 / 2; }
-.slot-3 { grid-column: 3 / 7; grid-row: 2 / 3; }
-.slot-4 { grid-column: 1 / 2; grid-row: 3 / 5; }
-.slot-5 { grid-column: 2 / 4; grid-row: 3 / 5; }
-.slot-6 { grid-column: 4 / 6; grid-row: 3 / 5; }
-.slot-7 { grid-column: 6 / 7; grid-row: 3 / 5; }
-
 /* 卡片入场 */
 @keyframes card-in {
-  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
   to   { opacity: 1; transform: none; }
 }
 
-/* 卡片基础 */
+/* 卡片基础：左对齐，图标左上，文字左下 */
 .card {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 14px 12px;
   border-radius: 16px;
   cursor: pointer;
   overflow: hidden;
   transform-style: preserve-3d;
-  transition: transform 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s ease;
+  transition: transform 0.28s cubic-bezier(0.23,1,0.32,1), box-shadow 0.28s ease;
   animation: card-in 0.4s cubic-bezier(0.23,1,0.32,1) both;
-  border: 1px solid rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.75);
   min-height: 0;
 }
+.card:hover { transform: translateY(-4px) scale(1.02); }
 
-.card-top-line {
+/* 右侧大号半透明装饰图标 */
+.card-deco {
   position: absolute;
-  top: 0; left: 20%; right: 20%;
-  height: 2px;
-  border-radius: 2px;
-  opacity: 0.5;
-  transition: left 0.3s, right 0.3s, opacity 0.3s;
-}
-.card:hover .card-top-line { left: 8%; right: 8%; opacity: 1; }
-
-.card-corner {
-  position: absolute;
-  bottom: 10px; right: 12px;
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  opacity: 0.3;
-  transition: opacity 0.3s, transform 0.3s;
-}
-.card:hover .card-corner { opacity: 1; transform: scale(1.5); }
-
-.card-spot {
-  position: absolute;
-  width: 140px; height: 140px;
-  border-radius: 50%;
-  transform: translate(calc(var(--sx,50%) - 70px), calc(var(--sy,50%) - 70px));
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 64px;
+  line-height: 1;
+  opacity: 0.08;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s;
+  transition: opacity 0.28s, transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+.card:hover .card-deco {
+  opacity: 0.15;
+  transform: translateY(-50%) scale(1.12) rotate(-8deg);
 }
 
+/* 左上：图标 */
 .card-icon-wrap {
-  position: relative;
-  z-index: 1;
-  width: 44px; height: 44px;
-  border-radius: 13px;
+  width: 38px; height: 38px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-}
-.card:hover .card-icon-wrap { transform: scale(1.18) translateY(-2px) rotate(7deg); }
-
-.card-name {
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
   position: relative;
   z-index: 1;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: transform 0.25s;
 }
-.card:hover .card-name { transform: translateY(-2px); }
+.card:hover .card-icon-wrap { transform: scale(1.12) rotate(5deg); }
+
+/* 左下：文字 */
+.card-name {
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.2s ease;
+}
+.card:hover .card-name { transform: translateX(2px); }
+
+/* 右下角箭头（hover 出现） */
+.card-arrow {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translate(-3px, 3px);
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 1;
+}
+.card:hover .card-arrow { opacity: 1; transform: translate(0, 0); }
+
+/* 鼠标光斑 */
+.card-spot {
+  position: absolute;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  transform: translate(calc(var(--sx,50%) - 60px), calc(var(--sy,50%) - 60px));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
 
 /* ── 主题色 ── */
-.c-blue   { background: linear-gradient(145deg,#eef2ff,#e0e7ff); box-shadow:0 2px 12px rgba(99,102,241,.1); }
-.c-green  { background: linear-gradient(145deg,#ecfdf5,#d1fae5); box-shadow:0 2px 12px rgba(16,185,129,.1); }
-.c-purple { background: linear-gradient(145deg,#faf5ff,#f3e8ff); box-shadow:0 2px 12px rgba(168,85,247,.1); }
-.c-orange { background: linear-gradient(145deg,#fff7ed,#ffedd5); box-shadow:0 2px 12px rgba(249,115,22,.1); }
-.c-red    { background: linear-gradient(145deg,#fff1f2,#ffe4e6); box-shadow:0 2px 12px rgba(239,68,68,.1); }
-.c-cyan   { background: linear-gradient(145deg,#ecfeff,#cffafe); box-shadow:0 2px 12px rgba(6,182,212,.1); }
+.c-blue   { background: linear-gradient(145deg,#eef2ff,#e0e7ff); box-shadow:0 2px 10px rgba(99,102,241,.1); }
+.c-green  { background: linear-gradient(145deg,#ecfdf5,#d1fae5); box-shadow:0 2px 10px rgba(16,185,129,.1); }
+.c-purple { background: linear-gradient(145deg,#faf5ff,#f3e8ff); box-shadow:0 2px 10px rgba(168,85,247,.1); }
+.c-orange { background: linear-gradient(145deg,#fff7ed,#ffedd5); box-shadow:0 2px 10px rgba(249,115,22,.1); }
+.c-red    { background: linear-gradient(145deg,#fff1f2,#ffe4e6); box-shadow:0 2px 10px rgba(239,68,68,.1); }
+.c-cyan   { background: linear-gradient(145deg,#ecfeff,#cffafe); box-shadow:0 2px 10px rgba(6,182,212,.1); }
 
-.c-blue:hover   { box-shadow:0 12px 36px rgba(99,102,241,.28); }
-.c-green:hover  { box-shadow:0 12px 36px rgba(16,185,129,.28); }
-.c-purple:hover { box-shadow:0 12px 36px rgba(168,85,247,.28); }
-.c-orange:hover { box-shadow:0 12px 36px rgba(249,115,22,.28); }
-.c-red:hover    { box-shadow:0 12px 36px rgba(239,68,68,.28); }
-.c-cyan:hover   { box-shadow:0 12px 36px rgba(6,182,212,.28); }
+.c-blue:hover   { box-shadow:0 10px 30px rgba(99,102,241,.25); }
+.c-green:hover  { box-shadow:0 10px 30px rgba(16,185,129,.25); }
+.c-purple:hover { box-shadow:0 10px 30px rgba(168,85,247,.25); }
+.c-orange:hover { box-shadow:0 10px 30px rgba(249,115,22,.25); }
+.c-red:hover    { box-shadow:0 10px 30px rgba(239,68,68,.25); }
+.c-cyan:hover   { box-shadow:0 10px 30px rgba(6,182,212,.25); }
 
-.c-blue   .card-top-line { background:linear-gradient(90deg,transparent,#6366f1,transparent); }
-.c-green  .card-top-line { background:linear-gradient(90deg,transparent,#10b981,transparent); }
-.c-purple .card-top-line { background:linear-gradient(90deg,transparent,#a855f7,transparent); }
-.c-orange .card-top-line { background:linear-gradient(90deg,transparent,#f97316,transparent); }
-.c-red    .card-top-line { background:linear-gradient(90deg,transparent,#ef4444,transparent); }
-.c-cyan   .card-top-line { background:linear-gradient(90deg,transparent,#06b6d4,transparent); }
+.c-blue   .card-icon-wrap { background:rgba(99,102,241,.14); color:#4f46e5; }
+.c-green  .card-icon-wrap { background:rgba(16,185,129,.14); color:#059669; }
+.c-purple .card-icon-wrap { background:rgba(168,85,247,.14); color:#9333ea; }
+.c-orange .card-icon-wrap { background:rgba(249,115,22,.14); color:#ea580c; }
+.c-red    .card-icon-wrap { background:rgba(239,68,68,.14);  color:#dc2626; }
+.c-cyan   .card-icon-wrap { background:rgba(6,182,212,.14);  color:#0891b2; }
 
-.c-blue   .card-corner { background:#6366f1; box-shadow:0 0 6px rgba(99,102,241,.6); }
-.c-green  .card-corner { background:#10b981; box-shadow:0 0 6px rgba(16,185,129,.6); }
-.c-purple .card-corner { background:#a855f7; box-shadow:0 0 6px rgba(168,85,247,.6); }
-.c-orange .card-corner { background:#f97316; box-shadow:0 0 6px rgba(249,115,22,.6); }
-.c-red    .card-corner { background:#ef4444; box-shadow:0 0 6px rgba(239,68,68,.6); }
-.c-cyan   .card-corner { background:#06b6d4; box-shadow:0 0 6px rgba(6,182,212,.6); }
+.c-blue   .card-name  { color:#3730a3; } .c-blue   .card-arrow { color:#4f46e5; } .c-blue   .card-deco { color:#4f46e5; }
+.c-green  .card-name  { color:#065f46; } .c-green  .card-arrow { color:#059669; } .c-green  .card-deco { color:#059669; }
+.c-purple .card-name  { color:#6b21a8; } .c-purple .card-arrow { color:#9333ea; } .c-purple .card-deco { color:#9333ea; }
+.c-orange .card-name  { color:#9a3412; } .c-orange .card-arrow { color:#ea580c; } .c-orange .card-deco { color:#ea580c; }
+.c-red    .card-name  { color:#991b1b; } .c-red    .card-arrow { color:#dc2626; } .c-red    .card-deco { color:#dc2626; }
+.c-cyan   .card-name  { color:#155e75; } .c-cyan   .card-arrow { color:#0891b2; } .c-cyan   .card-deco { color:#0891b2; }
 
-.c-blue   .card-icon-wrap { background:rgba(99,102,241,.12); color:#4f46e5; }
-.c-green  .card-icon-wrap { background:rgba(16,185,129,.12); color:#059669; }
-.c-purple .card-icon-wrap { background:rgba(168,85,247,.12); color:#9333ea; }
-.c-orange .card-icon-wrap { background:rgba(249,115,22,.12); color:#ea580c; }
-.c-red    .card-icon-wrap { background:rgba(239,68,68,.12);  color:#dc2626; }
-.c-cyan   .card-icon-wrap { background:rgba(6,182,212,.12);  color:#0891b2; }
-
-.c-blue   .card-name { color:#3730a3; }
-.c-green  .card-name { color:#065f46; }
-.c-purple .card-name { color:#6b21a8; }
-.c-orange .card-name { color:#9a3412; }
-.c-red    .card-name { color:#991b1b; }
-.c-cyan   .card-name { color:#155e75; }
-
-.c-blue   .card-spot { background:radial-gradient(circle,rgba(99,102,241,.15),transparent 70%); }
-.c-green  .card-spot { background:radial-gradient(circle,rgba(16,185,129,.15),transparent 70%); }
-.c-purple .card-spot { background:radial-gradient(circle,rgba(168,85,247,.15),transparent 70%); }
-.c-orange .card-spot { background:radial-gradient(circle,rgba(249,115,22,.15),transparent 70%); }
-.c-red    .card-spot { background:radial-gradient(circle,rgba(239,68,68,.15), transparent 70%); }
-.c-cyan   .card-spot { background:radial-gradient(circle,rgba(6,182,212,.15), transparent 70%); }
-</style>
-
-<style scoped>
-/* 大卡片（2×2、跨行/跨列）图标和字体放大 */
-.slot-0 .card-icon-wrap,
-.slot-3 .card-icon-wrap,
-.slot-5 .card-icon-wrap,
-.slot-6 .card-icon-wrap {
-  width: 56px;
-  height: 56px;
-  font-size: 26px;
-  border-radius: 16px;
-}
-.slot-0 .card-name,
-.slot-3 .card-name,
-.slot-5 .card-name,
-.slot-6 .card-name {
-  font-size: 14px;
-}
+.c-blue   .card-spot { background:radial-gradient(circle,rgba(99,102,241,.18),transparent 70%); }
+.c-green  .card-spot { background:radial-gradient(circle,rgba(16,185,129,.18),transparent 70%); }
+.c-purple .card-spot { background:radial-gradient(circle,rgba(168,85,247,.18),transparent 70%); }
+.c-orange .card-spot { background:radial-gradient(circle,rgba(249,115,22,.18),transparent 70%); }
+.c-red    .card-spot { background:radial-gradient(circle,rgba(239,68,68,.18), transparent 70%); }
+.c-cyan   .card-spot { background:radial-gradient(circle,rgba(6,182,212,.18), transparent 70%); }
 </style>
