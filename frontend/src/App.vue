@@ -68,26 +68,42 @@ onMounted(()=>{
   setTimeout(async () => {
     try {
       const result = await UpdateService.CheckUpdate()
-      if (result?.hasUpdate) {
-        notification.info({
-          message: `🎉 发现新版本 v${result.latest}`,
-          description: `当前版本 v${result.current}，点击前往下载最新版本。`,
-          btn: () => h(Button, {
+      if (!result?.hasUpdate) return
+
+      const currentVersion = await UpdateService.GetCurrentVersion()
+
+      // 检查是否已忽略该版本（dev 模式不受忽略限制）
+      const ignoredVersion = localStorage.getItem('ignoredUpdateVersion')
+      if (ignoredVersion === result.latest && currentVersion !== 'dev') return
+
+      notification.info({
+        key: 'update-notify',
+        message: `🎉 发现新版本 v${result.latest}`,
+        description: `当前版本 ${currentVersion === 'dev' ? 'dev' : 'v' + currentVersion}，新版本已发布，建议更新。`,
+        btn: () => h('div', { style: 'display:flex;gap:8px' }, [
+          h(Button, {
             type: 'primary',
             size: 'small',
             onClick: () => {
-              // Wails 打开外部浏览器
               import('@wailsio/runtime').then(({ Browser }) => {
                 Browser.OpenURL(result.releaseUrl)
               })
+              notification.close('update-notify')
             }
           }, '前往下载'),
-          duration: 0,
-          placement: 'bottomRight',
-        })
-      }
+          h(Button, {
+            size: 'small',
+            onClick: () => {
+              localStorage.setItem('ignoredUpdateVersion', result.latest)
+              notification.close('update-notify')
+            }
+          }, '忽略此版本'),
+        ]),
+        duration: 0,
+        placement: 'bottomRight',
+      })
     } catch {
-      // 静默失败，不影响主流程
+      // 静默失败
     }
   }, 3000)
 })

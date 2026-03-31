@@ -44,6 +44,7 @@
     title: '全局设置',
     basic: '基本设置',
     advanced: '高级设置',
+    about: '关于',
     network: '网络设置',
     virustotal: 'VirusTotal',
     theme: '主题模式',

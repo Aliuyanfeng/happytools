@@ -89,8 +89,12 @@ func (s *UpdateService) GetCurrentVersion() string {
 
 // isNewer 比较两个语义化版本号，latest > current 返回 true
 func isNewer(latest, current string) bool {
-	if latest == current || latest == "" || current == "dev" {
+	if latest == current || latest == "" {
 		return false
+	}
+	// dev 版本始终认为有更新，方便本地调试
+	if current == "dev" {
+		return latest != ""
 	}
 	lp := parseSemver(latest)
 	cp := parseSemver(current)

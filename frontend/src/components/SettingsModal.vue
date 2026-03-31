@@ -42,6 +42,14 @@
           <WarningOutlined class="sidebar-icon" />
           <span>{{ t('settings.advanced') }}</span>
         </div>
+        <div
+          class="sidebar-item"
+          :class="{ active: activeTab === 'about' }"
+          @click="activeTab = 'about'"
+        >
+          <InfoCircleOutlined class="sidebar-icon" />
+          <span>{{ t('settings.about') }}</span>
+        </div>
       </div>
   
       <!-- 右侧内容区 -->
@@ -246,6 +254,51 @@
           </div>
         </div>
 
+        <!-- 关于 -->
+        <div v-if="activeTab === 'about'" class="settings-panel about-panel">
+          <div class="about-logo-wrap">
+            <img src="@/assets/images/logo.png" alt="logo" class="about-logo" />
+          </div>
+          <div class="about-name">HappyTools</div>
+          <div class="about-version">
+            <span class="about-ver-label">当前版本</span>
+            <span class="about-ver-val">{{ currentVersion === 'dev' ? 'dev' : 'v' + currentVersion }}</span>
+          </div>
+
+          <a-button
+            type="primary"
+            :loading="checkingUpdate"
+            @click="manualCheckUpdate"
+            style="margin-top:4px"
+          >
+            检查更新
+          </a-button>
+          <div v-if="manualUpdateResult" class="update-result" :class="manualUpdateResult.hasUpdate ? 'has-update' : 'up-to-date'">
+            <template v-if="manualUpdateResult.hasUpdate">
+              🎉 发现新版本 v{{ manualUpdateResult.latest }}，
+              <a @click="openRelease(manualUpdateResult.releaseUrl)">点击下载</a>
+            </template>
+            <template v-else>
+              ✅ 已是最新版本
+            </template>
+          </div>
+
+          <a-divider style="margin:16px 0 12px" />
+
+          <div class="about-links">
+            <div class="about-link-item" @click="openRelease('https://github.com/Aliuyanfeng/happytools')">
+              <GithubOutlined />
+              <span>源代码 · GitHub</span>
+            </div>
+          </div>
+
+          <div class="about-meta">
+            <div>开源协议：MIT License</div>
+            <div>Built with ❤️ by Li6 &amp; Wails3</div>
+            <div>© 2025 Li6. All rights reserved.</div>
+          </div>
+        </div>
+
         <!-- 网络设置 -->
         <div v-if="activeTab === 'network'" class="settings-panel">
           <a-form layout="vertical">
@@ -295,9 +348,11 @@ import {
   CloseCircleOutlined,
   WarningOutlined,
   DeleteOutlined,
+  GithubOutlined,
 } from '@ant-design/icons-vue'
 import { useSettingsStore } from '../stores/settings'
 import { modules as allModules } from '../config/modules'
+import { UpdateService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/update/index'
 import { VTService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt'
 import { DNSService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/network/index'
 import { AppSettingsService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/appsettings'
@@ -432,6 +487,36 @@ function toggleModule(id: string, visible: boolean) {
       settingsStore.hiddenModules = [...settingsStore.hiddenModules, id]
     }
   }
+}
+
+// 关于页
+const currentVersion = ref('...')
+const checkingUpdate = ref(false)
+const manualUpdateResult = ref<{ hasUpdate: boolean; latest: string; releaseUrl: string } | null>(null)
+
+watch(() => props.open, async (v) => {
+  if (v && currentVersion.value === '...') {
+    currentVersion.value = await UpdateService.GetCurrentVersion()
+  }
+})
+
+async function manualCheckUpdate() {
+  checkingUpdate.value = true
+  manualUpdateResult.value = null
+  try {
+    const result = await UpdateService.CheckUpdate()
+    manualUpdateResult.value = result
+      ? { hasUpdate: result.hasUpdate, latest: result.latest ?? '', releaseUrl: result.releaseUrl ?? '' }
+      : { hasUpdate: false, latest: '', releaseUrl: '' }
+  } catch {
+    message.error('检查更新失败，请检查网络')
+  } finally {
+    checkingUpdate.value = false
+  }
+}
+
+function openRelease(url: string) {
+  import('@wailsio/runtime').then(({ Browser }) => Browser.OpenURL(url))
 }
 
 async function confirmClear() {
@@ -590,6 +675,66 @@ async function flushDNS() {
   background: #1a2a3a;
   border-color: #1e3a5f;
   color: #69b1ff;
+}
+
+/* 关于页 */
+.about-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 20px;
+}
+.about-logo-wrap {
+  width: 72px; height: 72px;
+  border-radius: 18px;
+  background: #f0f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e0e7ff;
+}
+.about-logo { width: 52px; height: 52px; object-fit: contain; }
+.about-name { font-size: 18px; font-weight: 700; color: #1e1b4b; }
+.about-version {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.about-ver-label { font-size: 12px; color: #94a3b8; }
+.about-ver-val { font-size: 13px; font-weight: 600; color: #6366f1; font-family: monospace; }
+
+.update-result {
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 8px;
+}
+.update-result.has-update { background: #eff6ff; color: #2563eb; }
+.update-result.up-to-date { background: #f0fdf4; color: #16a34a; }
+.update-result a { cursor: pointer; text-decoration: underline; }
+
+.about-links { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.about-link-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  font-size: 13px;
+  color: #334155;
+  transition: background 0.15s;
+}
+.about-link-item:hover { background: #eef2ff; color: #6366f1; }
+
+.about-meta {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.8;
 }
 
 /* 高级设置 - 模块管理 */

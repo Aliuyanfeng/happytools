@@ -44,6 +44,7 @@
     title: 'Global Settings',
     basic: 'Basic Settings',
     advanced: 'Advanced',
+    about: 'About',
     network: 'Network Settings',
     virustotal: 'VirusTotal',
     theme: 'Theme Mode',
