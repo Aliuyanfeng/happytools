@@ -7,47 +7,33 @@
         type="primary"
         :disabled="!store.currentDoc"
         @click="openAddModal"
-      >
-        + {{ t('makefileEditor.addVariable') }}
-      </a-button>
+      >+</a-button>
     </div>
 
-    <a-table
-      :columns="columns"
-      :data-source="variables"
-      :pagination="false"
-      size="small"
-      row-key="name"
-      :locale="{ emptyText: t('makefileEditor.noRecentFiles') }"
-    >
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'operator'">
-          <a-tag>{{ record.operator }}</a-tag>
-        </template>
-        <template v-else-if="column.key === 'value'">
-          <span class="value-cell">{{ record.value }}</span>
-        </template>
-        <template v-else-if="column.key === 'actions'">
-          <div class="action-btns">
-            <a-button size="small" @click="openEditModal(record)">
-              {{ t('makefileEditor.editVariable') }}
-            </a-button>
-            <a-popconfirm
-              :title="t('makefileEditor.deleteVariable') + '?'"
-              :ok-text="t('common.confirm')"
-              :cancel-text="t('common.cancel')"
-              @confirm="handleDelete(record.name)"
-            >
-              <a-button size="small" danger>
-                {{ t('makefileEditor.deleteVariable') }}
-              </a-button>
-            </a-popconfirm>
-          </div>
-        </template>
-      </template>
-    </a-table>
+    <div class="var-items">
+      <div v-for="v in variables" :key="v.name" class="var-item">
+        <div class="var-main">
+          <span class="var-name">{{ v.name }}</span>
+          <span class="var-op">{{ v.operator }}</span>
+          <span class="var-val">{{ v.value }}</span>
+        </div>
+        <div class="var-actions">
+          <a-button size="small" type="text" @click="openEditModal(v)">✎</a-button>
+          <a-popconfirm
+            :title="t('makefileEditor.deleteVariable') + '?'"
+            :ok-text="t('common.confirm')"
+            :cancel-text="t('common.cancel')"
+            @confirm="handleDelete(v.name)"
+          >
+            <a-button size="small" type="text" danger>✕</a-button>
+          </a-popconfirm>
+        </div>
+      </div>
+      <div v-if="variables.length === 0" class="empty-hint">
+        {{ t('makefileEditor.noRecentFiles') }}
+      </div>
+    </div>
 
-    <!-- Add / Edit modal -->
     <a-modal
       v-model:open="modalVisible"
       :title="editingVariable ? t('makefileEditor.editVariable') : t('makefileEditor.addVariable')"
@@ -125,13 +111,15 @@ function handleDelete(name: string) {
 .variable-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  min-height: 0;
 }
 
 .list-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .section-title {
@@ -142,14 +130,76 @@ function handleDelete(name: string) {
   letter-spacing: 0.5px;
 }
 
-.value-cell {
-  font-family: monospace;
-  font-size: 12px;
-  word-break: break-all;
+.var-items {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.action-btns {
+.var-item {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 4px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  min-width: 0;
+}
+.var-item:hover { background: #f0f5ff; border-color: #d6e4ff; }
+
+.var-main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.var-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #262626;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.var-op {
+  font-size: 10px;
+  color: #1677ff;
+  font-family: monospace;
+  flex-shrink: 0;
+  background: #e6f4ff;
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.var-val {
+  font-size: 11px;
+  color: #595959;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.var-actions {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: #bfbfbf;
+  text-align: center;
+  padding: 8px 0;
 }
 </style>

@@ -199,6 +199,25 @@
 
         <!-- 高级设置 -->
         <div v-if="activeTab === 'advanced'" class="settings-panel">
+
+          <!-- 首页模块管理 -->
+          <div class="module-manage">
+            <div class="mm-title">首页显示模块</div>
+            <p class="mm-desc">选择在首页展示的功能入口，取消勾选的模块将被隐藏。</p>
+            <div class="mm-list">
+              <div v-for="mod in allModules" :key="mod.id" class="mm-item">
+                <a-switch
+                  :checked="!settingsStore.hiddenModules.includes(mod.id)"
+                  size="small"
+                  @change="(v: boolean) => toggleModule(mod.id, v)"
+                />
+                <span class="mm-name">{{ t(mod.nameKey) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <a-divider />
+
           <div class="danger-zone">
             <div class="danger-zone-header">
               <WarningOutlined class="dz-icon" />
@@ -278,6 +297,7 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons-vue'
 import { useSettingsStore } from '../stores/settings'
+import { modules as allModules } from '../config/modules'
 import { VTService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt'
 import { DNSService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/network/index'
 import { AppSettingsService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/appsettings'
@@ -403,6 +423,16 @@ async function handleConcurrencyChange(value: number) {
 
 // 清除所有数据
 const clearing = ref(false)
+
+function toggleModule(id: string, visible: boolean) {
+  if (visible) {
+    settingsStore.hiddenModules = settingsStore.hiddenModules.filter(m => m !== id)
+  } else {
+    if (!settingsStore.hiddenModules.includes(id)) {
+      settingsStore.hiddenModules = [...settingsStore.hiddenModules, id]
+    }
+  }
+}
 
 async function confirmClear() {
   const modal = await import('ant-design-vue').then(m => m.Modal)
@@ -560,6 +590,41 @@ async function flushDNS() {
   background: #1a2a3a;
   border-color: #1e3a5f;
   color: #69b1ff;
+}
+
+/* 高级设置 - 模块管理 */
+.module-manage {
+  margin-bottom: 4px;
+}
+.mm-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 6px;
+}
+.mm-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 12px;
+}
+.mm-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+.mm-name {
+  font-size: 13px;
+  color: #262626;
+  white-space: nowrap;
 }
 
 /* 高级设置 - 危险区 */

@@ -8,6 +8,8 @@ import {
   GetRecentFiles,
   GetTemplates,
   ValidateDependencies,
+  RemoveRecentFile,
+  ValidateMakefileFormat,
 } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/makefile/makefileservice.js'
 import type { MakefileDoc, Target, Variable, Template } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/makefile/models.js'
 
@@ -143,6 +145,25 @@ export const useMakefileEditorStore = defineStore('makefileEditor', () => {
     recentFiles.value = result ?? []
   }
 
+  async function removeRecentFile(path: string) {
+    await RemoveRecentFile(path)
+    recentFiles.value = recentFiles.value.filter(p => p !== path)
+    // 如果移除的是当前打开的文件，不影响编辑状态
+  }
+
+  function closeFile() {
+    currentDoc.value = null
+    currentPath.value = ''
+    isDirty.value = false
+    selectedTargetName.value = ''
+    cycleWarnings.value = []
+  }
+
+  async function validateAndLoadFile(path: string) {
+    await ValidateMakefileFormat(path)  // 抛出错误则中断
+    await loadFile(path)
+  }
+
   async function fetchTemplates() {
     const result = await GetTemplates()
     templates.value = result ?? []
@@ -173,5 +194,8 @@ export const useMakefileEditorStore = defineStore('makefileEditor', () => {
     checkCycles,
     fetchRecentFiles,
     fetchTemplates,
+    removeRecentFile,
+    validateAndLoadFile,
+    closeFile,
   }
 })

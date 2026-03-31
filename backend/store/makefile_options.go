@@ -65,6 +65,30 @@ func GetRecentFiles() ([]string, error) {
 	return paths, err
 }
 
+// RemoveRecentFile removes a specific path from the recent-files list.
+func RemoveRecentFile(path string) error {
+	return DB.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(makefileRecentBucket)
+		existing := make([]string, 0)
+		if v := b.Get([]byte(makefileRecentKey)); v != nil {
+			if err := json.Unmarshal(v, &existing); err != nil {
+				return err
+			}
+		}
+		filtered := make([]string, 0, len(existing))
+		for _, p := range existing {
+			if p != path {
+				filtered = append(filtered, p)
+			}
+		}
+		data, err := json.Marshal(filtered)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(makefileRecentKey), data)
+	})
+}
+
 // SaveMakefileTemplate stores a custom template (as raw JSON) by its ID.
 // The caller is responsible for marshaling the template to JSON.
 func SaveMakefileTemplate(id string, data []byte) error {

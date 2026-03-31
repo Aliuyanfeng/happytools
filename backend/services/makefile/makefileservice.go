@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Aliuyanfeng/happytools/backend/store"
 	"github.com/google/uuid"
@@ -126,6 +127,72 @@ func (s *MakefileService) SaveRawText(path string, content string) error {
 	return nil
 }
 
+// RemoveRecentFile removes a path from the recent files list without deleting the file.
+func (s *MakefileService) RemoveRecentFile(path string) error {
+	return store.RemoveRecentFile(path)
+}
+
+// ValidateMakefileFormat checks whether the given file path looks like a valid Makefile.
+func (s *MakefileService) ValidateMakefileFormat(path string) error {
+	// 1. 文件名校验：必须是 Makefile、makefile、GNUmakefile 或 *.mk
+	base := filepath.Base(path)
+	baseLower := strings.ToLower(base)
+	validName := baseLower == "makefile" ||
+		baseLower == "gnumakefile" ||
+		strings.HasSuffix(baseLower, ".mk") ||
+		strings.HasSuffix(baseLower, ".make")
+	if !validName {
+		return fmt.Errorf("文件名不符合 Makefile 规范（应为 Makefile、*.mk 或 *.make），当前文件名：%s", base)
+	}
+
+	// 2. 内容校验：空文件直接通过
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("无法读取文件: %w", err)
+	}
+	if len(strings.TrimSpace(string(data))) == 0 {
+		return nil
+	}
+
+	// 3. 内容必须包含至少一个有效的 Makefile 元素：
+	//    - 规则行：`target:` 或 `target: deps`（target 不含空格，不以 # 开头）
+	//    - 变量赋值：`VAR = value` / `VAR := value` / `VAR ?= value` / `VAR += value`
+	//    - Tab 缩进的命令行
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		// 跳过空行和注释
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		// 规则行：不以 tab 开头，包含冒号，冒号前无空格（target 名）
+		if !strings.HasPrefix(line, "\t") && strings.Contains(trimmed, ":") {
+			colonIdx := strings.Index(trimmed, ":")
+			targetPart := strings.TrimSpace(trimmed[:colonIdx])
+			// target 名不能含空格（排除 http:// 等情况），且不能是空的
+			if len(targetPart) > 0 && !strings.Contains(targetPart, " ") && !strings.Contains(targetPart, "/") {
+				return nil
+			}
+		}
+		// 变量赋值：`VAR =`、`VAR :=`、`VAR ?=`、`VAR +=`
+		for _, op := range []string{" := ", " ?= ", " += ", " = "} {
+			if strings.Contains(trimmed, op) {
+				parts := strings.SplitN(trimmed, op, 2)
+				varName := strings.TrimSpace(parts[0])
+				// 变量名只含字母数字下划线
+				if len(varName) > 0 && !strings.ContainsAny(varName, " \t/\\") {
+					return nil
+				}
+			}
+		}
+		// Tab 缩进的命令行
+		if strings.HasPrefix(line, "\t") {
+			return nil
+		}
+	}
+	return fmt.Errorf("文件内容不符合 Makefile 格式，请选择正确的 Makefile 文件")
+}
+
 // ParseRawText 将原始文本内容解析为结构化 MakefileDoc，不写入磁盘。
 func (s *MakefileService) ParseRawText(content string) (*MakefileDoc, error) {
 	return Parse(content)
@@ -136,6 +203,7 @@ func (s *MakefileService) OpenFileDialog() string {
 	result, err := s.app.Dialog.OpenFile().
 		SetTitle("打开 Makefile 文件").
 		AddFilter("Makefile 文件", "*.mk").
+		AddFilter("All Files", "*.*").
 		PromptForSingleSelection()
 	if err != nil {
 		return ""

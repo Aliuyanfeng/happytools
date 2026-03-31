@@ -9,15 +9,16 @@
  * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
 -->
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { HomeOutlined } from '@ant-design/icons-vue';
-import { theme as antTheme } from 'ant-design-vue';
+import { theme as antTheme, notification, Button } from 'ant-design-vue';
 import TitleBar from './components/TitleBar.vue';
 import { useAppStore } from './stores/app';
 import { useSettingsStore } from './stores/settings';
 import {Events} from "@wailsio/runtime";
+import { UpdateService } from '../bindings/github.com/Aliuyanfeng/happytools/backend/services/update/index'
 
 const { t } = useI18n();
 const router = useRouter();
@@ -62,6 +63,33 @@ onMounted(()=>{
       appStore.updateLastUsedTime(event.data)
     }
   });
+
+  // 静默检查更新（延迟 3 秒，等前端完全加载）
+  setTimeout(async () => {
+    try {
+      const result = await UpdateService.CheckUpdate()
+      if (result?.hasUpdate) {
+        notification.info({
+          message: `🎉 发现新版本 v${result.latest}`,
+          description: `当前版本 v${result.current}，点击前往下载最新版本。`,
+          btn: () => h(Button, {
+            type: 'primary',
+            size: 'small',
+            onClick: () => {
+              // Wails 打开外部浏览器
+              import('@wailsio/runtime').then(({ Browser }) => {
+                Browser.OpenURL(result.releaseUrl)
+              })
+            }
+          }, '前往下载'),
+          duration: 0,
+          placement: 'bottomRight',
+        })
+      }
+    } catch {
+      // 静默失败，不影响主流程
+    }
+  }, 3000)
 })
 
 

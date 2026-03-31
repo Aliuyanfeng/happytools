@@ -29,6 +29,11 @@ export const useSettingsStore = defineStore('settings', () => {
   // VirusTotal 并发扫描数
   const vtConcurrency = ref<number>(parseInt(localStorage.getItem('vtConcurrency') || '5'))
 
+  // 首页模块可见性（存储隐藏的模块 id 列表）
+  const hiddenModules = ref<string[]>(
+    JSON.parse(localStorage.getItem('hiddenModules') || '[]')
+  )
+
   // 监听变化并保存到本地存储
   watch(themeMode, (newVal) => {
     localStorage.setItem('themeMode', newVal)
@@ -61,6 +66,10 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(vtConcurrency, (newVal) => {
     localStorage.setItem('vtConcurrency', String(newVal))
   })
+
+  watch(hiddenModules, (newVal) => {
+    localStorage.setItem('hiddenModules', JSON.stringify(newVal))
+  }, { deep: true })
 
   // 当前实际是否为暗色（用于 ConfigProvider）
   const isDark = ref(false)
@@ -121,6 +130,7 @@ export const useSettingsStore = defineStore('settings', () => {
     closeBehavior,
     vtApiKey,
     vtConcurrency,
+    hiddenModules,
     isDark,
     initSettings
   }

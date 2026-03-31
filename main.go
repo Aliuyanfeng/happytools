@@ -33,12 +33,16 @@ import (
 	"github.com/Aliuyanfeng/happytools/backend/services/rename"
 	"github.com/Aliuyanfeng/happytools/backend/services/todo"
 	"github.com/Aliuyanfeng/happytools/backend/services/unitconverter"
+	"github.com/Aliuyanfeng/happytools/backend/services/update"
 	virusTotal "github.com/Aliuyanfeng/happytools/backend/services/vt"
 	"github.com/Aliuyanfeng/happytools/backend/store"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
+
+// Version 由构建时通过 -ldflags 注入，开发时默认为 "dev"
+var Version = "dev"
 
 // Wails uses Go's `embed` package to embed the frontend files into the binary.
 // Any files in the frontend/dist folder will be embedded into the binary and
@@ -101,6 +105,7 @@ func main() {
 	app.RegisterService(application.NewService(pnginjector.NewPNGInjectorService(app)))
 	app.RegisterService(application.NewService(gitconfig.NewGitConfigService(app)))
 	app.RegisterService(application.NewService(makefile.NewMakefileService(app)))
+	app.RegisterService(application.NewService(update.NewUpdateService(Version, "Aliuyanfeng", "happytools")))
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
@@ -111,10 +116,8 @@ func main() {
 		Title:     "happytools",
 		Width:     1024,
 		Height:    768,
-		MinWidth:  1024,
-		MinHeight: 768,
-		MaxWidth:  1024,
-		MaxHeight: 768,
+		MinWidth:  800,
+		MinHeight: 600,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
 			Backdrop:                application.MacBackdropTranslucent,

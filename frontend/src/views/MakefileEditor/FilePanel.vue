@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="file-panel">
     <!-- Action buttons -->
     <div class="panel-actions">
@@ -33,6 +33,9 @@
         >
           {{ t('makefileEditor.save') }}
         </a-button>
+        <a-tooltip title="关闭文件">
+          <a-button size="small" type="text" danger @click="handleClose">✕</a-button>
+        </a-tooltip>
       </template>
       <span v-else class="no-file">—</span>
     </div>
@@ -50,6 +53,9 @@
         <FileTextOutlined class="file-icon" />
         <a-tooltip :title="path">
           <span class="recent-path">{{ shortPath(path) }}</span>
+        </a-tooltip>
+        <a-tooltip title="从列表移除">
+          <span class="remove-btn" @click.stop="handleRemoveRecent(path)">×</span>
         </a-tooltip>
       </div>
       <div v-if="store.recentFiles.length === 0" class="empty-hint">
@@ -91,7 +97,7 @@ async function handleOpenFile() {
   try {
     const path = await OpenFileDialog()
     if (!path) return
-    await store.loadFile(path)
+    await store.validateAndLoadFile(path)
   } catch (e: any) {
     message.error(e?.message ?? t('makefileEditor.openFile'))
   }
@@ -109,9 +115,17 @@ async function handleNewFile() {
 
 async function handleOpenRecent(path: string) {
   try {
-    await store.loadFile(path)
+    await store.validateAndLoadFile(path)
   } catch (e: any) {
     message.error(e?.message ?? path)
+  }
+}
+
+async function handleRemoveRecent(path: string) {
+  try {
+    await store.removeRecentFile(path)
+  } catch (e: any) {
+    message.error(e?.message ?? '移除失败')
   }
 }
 
@@ -121,6 +135,13 @@ async function handleSave() {
   } catch (e: any) {
     message.error(e?.message ?? t('makefileEditor.save'))
   }
+}
+
+function handleClose() {
+  if (store.isDirty) {
+    if (!confirm('文件有未保存的修改，确认关闭？')) return
+  }
+  store.closeFile()
 }
 </script>
 
@@ -216,6 +237,25 @@ async function handleSave() {
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: monospace;
+  flex: 1;
+}
+
+.remove-btn {
+  font-size: 14px;
+  color: #bfbfbf;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  cursor: pointer;
+}
+.recent-item:hover .remove-btn {
+  opacity: 1;
+}
+.remove-btn:hover {
+  color: #ff4d4f;
 }
 
 .empty-hint {

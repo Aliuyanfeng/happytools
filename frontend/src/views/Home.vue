@@ -36,11 +36,11 @@
     <div class="panel-right">
       <div class="right-header">
         <span class="right-title">{{ t('home.featureEntry') }}</span>
-        <span class="right-count">{{ modules.length }} 个工具</span>
+        <span class="right-count">{{ visibleModules.length }} 个工具</span>
       </div>
       <div class="card-grid">
         <div
-          v-for="(module, i) in modules"
+          v-for="(module, i) in visibleModules"
           :key="module.id"
           class="card"
           :class="`c-${module.theme}`"
@@ -76,9 +76,15 @@ import {
   BranchesOutlined, FileTextOutlined, ArrowRightOutlined,
 } from '@ant-design/icons-vue'
 import { modules } from '@/config/modules'
+import { useSettingsStore } from '@/stores/settings'
 
 const { t } = useI18n()
 const router = useRouter()
+const settingsStore = useSettingsStore()
+
+const visibleModules = computed(() =>
+  modules.filter(m => !settingsStore.hiddenModules.includes(m.id))
+)
 
 const iconMap: Record<string, any> = {
   DashboardOutlined, CheckCircleOutlined, ToolOutlined,
