@@ -70,7 +70,7 @@ git-chglog --next-tag v1.0.0 -o CHANGELOG.md
 
 # 3. 提交 CHANGELOG
 git add CHANGELOG.md
-git commit -m "docs: update CHANGELOG for v1.0.0"
+git commit -m "build: update v1.0.0"
 
 # 4. 创建标签
 git tag v1.0.0
