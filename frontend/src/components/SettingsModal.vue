@@ -34,6 +34,14 @@
           <SafetyOutlined class="sidebar-icon" />
           <span>VirusTotal</span>
         </div>
+        <div
+          class="sidebar-item"
+          :class="{ active: activeTab === 'advanced' }"
+          @click="activeTab = 'advanced'"
+        >
+          <WarningOutlined class="sidebar-icon" />
+          <span>{{ t('settings.advanced') }}</span>
+        </div>
       </div>
   
       <!-- 右侧内容区 -->
@@ -71,28 +79,8 @@
               </a-radio-group>
             </a-form-item>
 
-            <!-- 主题设置 -->
-            <a-form-item :label="t('settings.theme')">
-              <a-radio-group v-model:value="settingsStore.themeMode" button-style="solid">
-                <a-radio-button value="light">
-                  <BulbOutlined class="mr-1" />
-                  {{ t('settings.themeLight') }}
-                </a-radio-button>
-                <a-radio-button value="dark">
-                  <BulbOutlined class="mr-1" />
-                  {{ t('settings.themeDark') }}
-                </a-radio-button>
-                <a-radio-button value="auto">
-                  <SyncOutlined class="mr-1" />
-                  {{ t('settings.themeAuto') }}
-                </a-radio-button>
-              </a-radio-group>
-              <div class="setting-hint">
-                <InfoCircleOutlined class="mr-1" />
-                {{ t('settings.themeAutoHint') }}
-              </div>
-            </a-form-item>
-  
+            <!-- 主题设置 - 已隐藏 -->
+
             <!-- 字体大小 -->
             <a-form-item :label="t('settings.fontSize')">
               <a-radio-group v-model:value="settingsStore.fontSize" button-style="solid">
@@ -209,6 +197,36 @@
           </a-form>
         </div>
 
+        <!-- 高级设置 -->
+        <div v-if="activeTab === 'advanced'" class="settings-panel">
+          <div class="danger-zone">
+            <div class="danger-zone-header">
+              <WarningOutlined class="dz-icon" />
+              <span class="dz-title">危险操作区</span>
+            </div>
+            <p class="dz-desc">以下操作不可撤销，请谨慎操作。</p>
+
+            <div class="danger-card">
+              <div class="dc-info">
+                <div class="dc-name">清除所有缓存数据</div>
+                <div class="dc-desc">
+                  将清空以下所有数据：待办事项、分类、日报记录、VirusTotal 任务、Git 仓库配置、Makefile 最近文件及自定义模板。<br />
+                  <strong>应用设置（语言、字体等）不会被清除。</strong>
+                </div>
+              </div>
+              <a-button
+                danger
+                type="primary"
+                :loading="clearing"
+                @mousedown.prevent="confirmClear"
+              >
+                <template #icon><DeleteOutlined /></template>
+                清除数据
+              </a-button>
+            </div>
+          </div>
+        </div>
+
         <!-- 网络设置 -->
         <div v-if="activeTab === 'network'" class="settings-panel">
           <a-form layout="vertical">
@@ -256,10 +274,13 @@ import {
   LoadingOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  WarningOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons-vue'
 import { useSettingsStore } from '../stores/settings'
 import { VTService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/vt'
 import { DNSService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/network/index'
+import { AppSettingsService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/appsettings'
 
 const { t } = useI18n()
 
@@ -380,7 +401,30 @@ async function handleConcurrencyChange(value: number) {
   }
 }
 
-// 刷新DNS缓存
+// 清除所有数据
+const clearing = ref(false)
+
+async function confirmClear() {
+  const modal = await import('ant-design-vue').then(m => m.Modal)
+  modal.confirm({
+    title: '⚠️ 确认清除所有数据？',
+    content: '此操作将永久删除：待办事项、分类、日报、VirusTotal 任务、Git 配置、Makefile 记录及模板。应用设置不受影响。此操作不可撤销！',
+    okText: '确认清除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: async () => {
+      clearing.value = true
+      try {
+        await AppSettingsService.ClearAllData()
+        message.success('数据已清除')
+      } catch (e: any) {
+        message.error(e?.message ?? '清除失败')
+      } finally {
+        clearing.value = false
+      }
+    },
+  })
+}
 async function flushDNS() {
   dnsFlushing.value = true
   dnsResult.value = null
@@ -517,6 +561,42 @@ async function flushDNS() {
   border-color: #1e3a5f;
   color: #69b1ff;
 }
+
+/* 高级设置 - 危险区 */
+.danger-zone {
+  border: 1px solid #ffa39e;
+  border-radius: 8px;
+  padding: 20px;
+  background: #fff2f0;
+}
+.danger-zone-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.dz-icon { font-size: 18px; color: #cf1322; }
+.dz-title { font-size: 15px; font-weight: 700; color: #cf1322; }
+.dz-desc { font-size: 12px; color: #8c8c8c; margin-bottom: 16px; }
+
+.danger-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #ffa39e;
+  border-radius: 6px;
+}
+.dc-info { flex: 1; }
+.dc-name { font-size: 14px; font-weight: 600; color: #262626; margin-bottom: 6px; }
+.dc-desc { font-size: 12px; color: #595959; line-height: 1.6; }
+.dc-desc strong { color: #cf1322; }
+
+/* 侧边栏危险项 */
+.danger-icon { color: #cf1322 !important; }
+.danger-text { color: #cf1322; }
 
 /* DNS 设置样式 */
 .dns-section {

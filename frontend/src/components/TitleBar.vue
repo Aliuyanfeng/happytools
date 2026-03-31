@@ -7,15 +7,15 @@
     </div>
 
     <div class="titlebar-right">
-      <button class="title-btn settings" :title="t('settings.title')" @click="openSettings">
+      <button class="title-btn settings" :title="t('settings.title')" @mousedown.prevent="openSettings">
         <SettingOutlined class="icon" />
       </button>
-      <button class="title-btn pin" :class="{ active: isAlwaysOnTop }" :title="isAlwaysOnTop ? t('app.unpin') : t('app.pin')" @click="toggleAlwaysOnTop">
+      <button class="title-btn pin" :class="{ active: isAlwaysOnTop }" :title="isAlwaysOnTop ? t('app.unpin') : t('app.pin')" @mousedown.prevent="toggleAlwaysOnTop">
         <PushpinOutlined class="icon" />
       </button>
-      <button class="title-btn minimize" :title="t('app.minimize')" @click="minimize"><span class="icon">−</span></button>
-      <button class="title-btn maximize" :title="t('app.maximize')" @click="toggleMaximize"><span class="icon">▢</span></button>
-      <button class="title-btn close" :title="t('app.close')" @click="close"><span class="icon">✕</span></button>
+      <button class="title-btn minimize" :title="t('app.minimize')" @mousedown.prevent="minimize"><span class="icon">−</span></button>
+      <button class="title-btn maximize" :title="t('app.maximize')" @mousedown.prevent="toggleMaximize"><span class="icon">▢</span></button>
+      <button class="title-btn close" :title="t('app.close')" @mousedown.prevent="close"><span class="icon">✕</span></button>
     </div>
 
     <!-- 全局设置弹窗 -->

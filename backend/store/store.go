@@ -45,6 +45,32 @@ func Init(path string) error {
 	})
 }
 
+// ClearAllData 清空所有 bucket 中的数据，但保留 bucket 结构
+func ClearAllData() error {
+	return DB.Update(func(tx *bbolt.Tx) error {
+		buckets := [][]byte{
+			todoBucket, categoryBucket, dailyReportBucket,
+			vtTaskBucket, vtFileBucket,
+			gitRepoBucket, gitQuickPanelBucket,
+			makefileRecentBucket, makefileTemplateBucket,
+		}
+		// 注意：保留 appSettingsBucket（用户设置不清除）
+		for _, name := range buckets {
+			b := tx.Bucket(name)
+			if b == nil {
+				continue
+			}
+			// 删除 bucket 内所有 key
+			if err := b.ForEach(func(k, _ []byte) error {
+				return b.Delete(k)
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // Close 关闭数据库
 func Close() error {
 	if DB != nil {

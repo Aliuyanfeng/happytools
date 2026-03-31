@@ -67,3 +67,8 @@ func (s *AppSettingsService) GetFavoriteNetworkInterface() string {
 func (s *AppSettingsService) SetFavoriteNetworkInterface(interfaceName string) error {
 	return store.SetFavoriteNetworkInterface(interfaceName)
 }
+
+// ClearAllData 清空所有业务数据（保留应用设置和 bucket 结构）
+func (s *AppSettingsService) ClearAllData() error {
+	return store.ClearAllData()
+}

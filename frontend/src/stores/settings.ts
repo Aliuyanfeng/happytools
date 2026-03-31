@@ -90,23 +90,19 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // 应用字体大小
   function applyFontSize(size: FontSize) {
-    const root = document.documentElement
-    const sizeMap = {
-      small: '14px',
-      medium: '16px',
-      large: '18px'
-    }
-    root.style.fontSize = sizeMap[size]
+    const sizeMap = { small: '13px', medium: '14px', large: '16px' }
+    const px = sizeMap[size]
+    document.documentElement.style.fontSize = px
+    document.body.style.fontSize = px
   }
 
   // 应用自定义字体
   function applyCustomFont(font: string) {
-    const root = document.documentElement
-    if (font) {
-      root.style.fontFamily = font
-    } else {
-      root.style.fontFamily = ''
-    }
+    const family = font
+      ? `${font}, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+      : '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
+    document.documentElement.style.fontFamily = family
+    document.body.style.fontFamily = family
   }
 
   // 初始化应用设置

@@ -22,10 +22,20 @@
         <!-- 数据转换分类 -->
         <a-menu-item-group key="data-convert" :title="t('toolbox.categoryDataConvert')">
           <a-menu-item key="unit-converter">
-            <template #icon>
-              <RetweetOutlined />
-            </template>
+            <template #icon><RetweetOutlined /></template>
             <span v-if="!isCollapsed">{{ t('toolbox.menuUnitConverter') }}</span>
+          </a-menu-item>
+          <a-menu-item key="base-converter">
+            <template #icon><NumberOutlined /></template>
+            <span v-if="!isCollapsed">{{ t('toolbox.menuBaseConverter') }}</span>
+          </a-menu-item>
+          <a-menu-item key="timestamp">
+            <template #icon><ClockCircleOutlined /></template>
+            <span v-if="!isCollapsed">{{ t('toolbox.menuTimestamp') }}</span>
+          </a-menu-item>
+          <a-menu-item key="color-converter">
+            <template #icon><BgColorsOutlined /></template>
+            <span v-if="!isCollapsed">{{ t('toolbox.menuColorConverter') }}</span>
           </a-menu-item>
         </a-menu-item-group>
 
@@ -113,7 +123,10 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   FileImageOutlined,
-  EditOutlined
+  EditOutlined,
+  NumberOutlined,
+  ClockCircleOutlined,
+  BgColorsOutlined,
 } from '@ant-design/icons-vue'
 
 const { t } = useI18n()
@@ -127,6 +140,9 @@ const isCollapsed = ref(false)
 const currentTool = computed(() => {
   const path = route.path
   if (path.includes('unit-converter')) return 'unit-converter'
+  if (path.includes('base-converter')) return 'base-converter'
+  if (path.includes('timestamp')) return 'timestamp'
+  if (path.includes('color-converter')) return 'color-converter'
   if (path.includes('encryption')) return 'encryption'
   if (path.includes('png-injector')) return 'png-injector'
   if (path.includes('batch-rename')) return 'batch-rename'

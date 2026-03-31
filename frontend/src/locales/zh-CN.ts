@@ -43,6 +43,7 @@
   settings: {
     title: '全局设置',
     basic: '基本设置',
+    advanced: '高级设置',
     network: '网络设置',
     virustotal: 'VirusTotal',
     theme: '主题模式',
@@ -278,6 +279,9 @@
     categoryDataConvert: '数据转换',
     categoryTools: '辅助工具',
     menuUnitConverter: '单位转换',
+    menuBaseConverter: '进制转换',
+    menuTimestamp: '时间戳转换',
+    menuColorConverter: '颜色转换',
     menuEncryption: '加密工具',
     menuPngInjector: 'PNG 注入',
     menuBatchRename: '批量重命名',

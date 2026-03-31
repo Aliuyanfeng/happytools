@@ -43,6 +43,7 @@
   settings: {
     title: 'Global Settings',
     basic: 'Basic Settings',
+    advanced: 'Advanced',
     network: 'Network Settings',
     virustotal: 'VirusTotal',
     theme: 'Theme Mode',
@@ -278,6 +279,9 @@
     categoryDataConvert: 'Data Conversion',
     categoryTools: 'Utilities',
     menuUnitConverter: 'Unit Converter',
+    menuBaseConverter: 'Base Converter',
+    menuTimestamp: 'Timestamp',
+    menuColorConverter: 'Color Converter',
     menuEncryption: 'Encryption',
     menuPngInjector: 'PNG Injector',
     menuBatchRename: 'Batch Rename',

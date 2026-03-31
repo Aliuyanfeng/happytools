@@ -35,10 +35,26 @@ const routes: Array<RouteRecordRaw> = [
             {
                 path: 'unit-converter',
                 name: 'unit-converter',
-                meta: {
-                    title: '单位转换'
-                },
+                meta: { title: '单位转换' },
                 component: () => import('../views/Toolbox/UnitConverter.vue')
+            },
+            {
+                path: 'base-converter',
+                name: 'base-converter',
+                meta: { title: '进制转换' },
+                component: () => import('../views/Toolbox/BaseConverter.vue')
+            },
+            {
+                path: 'timestamp',
+                name: 'timestamp',
+                meta: { title: '时间戳转换' },
+                component: () => import('../views/Toolbox/Timestamp.vue')
+            },
+            {
+                path: 'color-converter',
+                name: 'color-converter',
+                meta: { title: '颜色转换' },
+                component: () => import('../views/Toolbox/ColorConverter.vue')
             },
             {
                 path: 'encryption',
