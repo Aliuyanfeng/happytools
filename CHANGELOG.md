@@ -4,7 +4,6 @@
 
 > 2026-03-31
 
-<<<<<<< HEAD
 ### Fixed
 
 * 修复检查更新版本号问题 feat: 增加关于页面
@@ -31,11 +30,6 @@
 * update CHANGELOG for v1.1.0
 * update CHANGELOG for v1.0.0
 * 更新README和添加GPL许可证
-=======
-### Docs
-
-* update CHANGELOG for v1.1.0
->>>>>>> bea1ff5aa85899754c8074273f89f7dce2105507
 
 ### Features
 
