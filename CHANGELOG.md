@@ -4,6 +4,27 @@
 
 > 2026-03-31
 
+### Docs
+
+* update CHANGELOG for v1.1.0
+
+### Features
+
+* 新增发布更新 自定义模块展示，修复已知问题
+* 新增时间戳转换、颜色转换
+* 重构dashboard
+* 新增makefile编辑
+* 增加vt 用户信息展示
+* 完善i18n 国际化
+* 新增PNG注入拖拽文件
+* 增加批量重命名
+* 修改logo
+
+### Fixed
+
+* DNS刷新中文编码问题
+* 修复重命名拖拽问题
+
 ### Style
 
 * 首页风格修改
@@ -18,6 +39,19 @@
 
 > 2026-03-09
 
+### Build
+
+* 修改release
+* 修改release
+* 修改release
+* 修改release
+* 修改release
+* 修改release
+* 修改release
+* 修改release
+* 修改release
+* 修改release
+
 ### Chore
 
 * 更新模块路径并清理README文件
@@ -28,7 +62,14 @@
 * update CHANGELOG for v1.0.0
 * 更新README和添加GPL许可证
 
-### Feat
+### Features
 
 * 增加更新说明
+* 新增CHNAGELOG
+* 发布前准备
+* 新增udp调试
+* 新增国际化
+* 新增vt模块
+* 新增日报模块
+* 新增功能入口
 
