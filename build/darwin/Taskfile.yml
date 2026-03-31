@@ -13,7 +13,7 @@ tasks:
     cmds:
       - go build {{.BUILD_FLAGS}} -o {{.OUTPUT}}
     vars:
-      BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production -trimpath -buildvcs=false -ldflags="-w -s"{{else}}-buildvcs=false -gcflags=all="-l"{{end}}'
+      BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production -trimpath -buildvcs=false -ldflags="-w -s -X main.Version={{.VERSION | default "dev"}}"{{else}}-buildvcs=false -gcflags=all="-l"{{end}}'
       DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
       OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
     env:
@@ -31,10 +31,14 @@ tasks:
       - task: build
         vars:
           ARCH: amd64
+          PRODUCTION: "true"
+          VERSION: '{{.VERSION}}'
           OUTPUT: "{{.BIN_DIR}}/{{.APP_NAME}}-amd64"
       - task: build
         vars:
           ARCH: arm64
+          PRODUCTION: "true"
+          VERSION: '{{.VERSION}}'
           OUTPUT: "{{.BIN_DIR}}/{{.APP_NAME}}-arm64"
     cmds:
       - lipo -create -output "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}-amd64" "{{.BIN_DIR}}/{{.APP_NAME}}-arm64"
@@ -46,6 +50,7 @@ tasks:
       - task: build
         vars:
           PRODUCTION: "true"
+          VERSION: '{{.VERSION}}'
     cmds:
       - task: create:app:bundle
 
@@ -53,6 +58,8 @@ tasks:
     summary: Packages darwin universal binary (arm64 + amd64)
     deps:
       - task: build:universal
+        vars:
+          VERSION: '{{.VERSION}}'
     cmds:
       - task: create:app:bundle
 
