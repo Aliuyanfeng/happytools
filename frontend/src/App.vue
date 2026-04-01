@@ -32,15 +32,13 @@ const lastUsedTime = ref<string>("")
 
 // 动态 antd 主题配置
 const antdTheme = computed(() => {
-  const fontSizeMap = { small: 12, medium: 14, large: 16 }
-  const fontSize = fontSizeMap[settingsStore.fontSize] ?? 14
   const fontFamily = settingsStore.customFont
     ? `${settingsStore.customFont}, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
     : undefined
   return {
     algorithm: settingsStore.isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
     token: {
-      fontSize,
+      fontSize: 14,
       ...(fontFamily ? { fontFamily } : {}),
     },
   }

@@ -36,13 +36,11 @@ import (
 	"github.com/Aliuyanfeng/happytools/backend/services/update"
 	virusTotal "github.com/Aliuyanfeng/happytools/backend/services/vt"
 	"github.com/Aliuyanfeng/happytools/backend/store"
+	"gopkg.in/yaml.v3"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
-
-// Version 由构建时通过 -ldflags 注入，开发时默认为 "dev"
-var Version = "dev"
 
 // Wails uses Go's `embed` package to embed the frontend files into the binary.
 // Any files in the frontend/dist folder will be embedded into the binary and
@@ -51,6 +49,9 @@ var Version = "dev"
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+//go:embed build/config.yml
+var buildConfig []byte
 
 // main function serves as the application's entry point. It initializes the application, creates a window,
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
@@ -76,6 +77,17 @@ func main() {
 	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
 	// 'Bind' is a list of Go struct instances. The frontend has access to the methods of these instances.
 	// 'Mac' options tailor the application when running an macOS.
+	// 从嵌入的 build/config.yml 读取版本号（info.version 字段）
+	appVersion := "dev"
+	var buildCfg struct {
+		Info struct {
+			Version string `yaml:"version"`
+		} `yaml:"info"`
+	}
+	if err := yaml.Unmarshal(buildConfig, &buildCfg); err == nil && buildCfg.Info.Version != "" {
+		appVersion = buildCfg.Info.Version
+	}
+
 	app := application.New(application.Options{
 		Name:        "happytools",
 		Description: "A tool that can enhance one's sense of happiness",
@@ -105,7 +117,7 @@ func main() {
 	app.RegisterService(application.NewService(pnginjector.NewPNGInjectorService(app)))
 	app.RegisterService(application.NewService(gitconfig.NewGitConfigService(app)))
 	app.RegisterService(application.NewService(makefile.NewMakefileService(app)))
-	app.RegisterService(application.NewService(update.NewUpdateService(Version, "Aliuyanfeng", "happytools")))
+	app.RegisterService(application.NewService(update.NewUpdateService(appVersion, "Aliuyanfeng", "happytools")))
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.

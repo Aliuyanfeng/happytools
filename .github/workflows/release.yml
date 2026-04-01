@@ -91,7 +91,7 @@ jobs:
           export PATH="/c/Program Files (x86)/NSIS:$PATH"
           which makensis && echo "makensis found" || echo "makensis NOT found"
           makensis /VERSION || true
-          wails3 task ${{ matrix.build-task }} VERSION=${{ steps.normalise_version.outputs.version }}
+          wails3 task ${{ matrix.build-task }}
         env:
           CGO_ENABLED: ${{ runner.os == 'Windows' && '0' || '1' }}
 

@@ -97,12 +97,17 @@ export const useSettingsStore = defineStore('settings', () => {
     root.setAttribute('data-theme', dark ? 'dark' : 'light')
   }
 
-  // 应用字体大小
+  // 应用字体大小（用 zoom 整体缩放，覆盖所有硬编码 px 的元素）
   function applyFontSize(size: FontSize) {
+    const zoomMap = { small: '0.9', medium: '1', large: '1.1' }
+    const app = document.getElementById('app')
+    if (app) {
+      app.style.setProperty('zoom', zoomMap[size])
+    }
+    // 同步更新 antd token（通过 App.vue 的 computed 响应）
     const sizeMap = { small: '13px', medium: '14px', large: '16px' }
-    const px = sizeMap[size]
-    document.documentElement.style.fontSize = px
-    document.body.style.fontSize = px
+    document.documentElement.style.fontSize = sizeMap[size]
+    document.body.style.fontSize = sizeMap[size]
   }
 
   // 应用自定义字体

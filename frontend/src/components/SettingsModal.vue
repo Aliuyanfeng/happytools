@@ -90,6 +90,7 @@
             <!-- 主题设置 - 已隐藏 -->
 
             <!-- 字体大小 -->
+            <!--
             <a-form-item :label="t('settings.fontSize')">
               <a-radio-group v-model:value="settingsStore.fontSize" button-style="solid">
                 <a-radio-button value="small">{{ t('settings.fontSizeSmall') }}</a-radio-button>
@@ -97,6 +98,7 @@
                 <a-radio-button value="large">{{ t('settings.fontSizeLarge') }}</a-radio-button>
               </a-radio-group>
             </a-form-item>
+            -->
   
             <!-- 自定义字体 -->
             <a-form-item :label="t('settings.customFont')">
@@ -293,9 +295,8 @@
           </div>
 
           <div class="about-meta">
-            <div>开源协议：MIT License</div>
             <div>Built with ❤️ by Li6 &amp; Wails3</div>
-            <div>© 2025 Li6. All rights reserved.</div>
+            <div>© 2025 Li6. Released under the MIT License.</div>
           </div>
         </div>
 
