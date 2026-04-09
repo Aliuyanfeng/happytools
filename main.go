@@ -13,6 +13,8 @@ package main
 import (
 	"embed"
 	_ "embed"
+	"fmt"
+	"image/color"
 	"log"
 	"os"
 	"path/filepath"
@@ -36,6 +38,7 @@ import (
 	"github.com/Aliuyanfeng/happytools/backend/services/update"
 	virusTotal "github.com/Aliuyanfeng/happytools/backend/services/vt"
 	"github.com/Aliuyanfeng/happytools/backend/store"
+	"github.com/wailsapp/wails/v3/pkg/services/dock"
 	"gopkg.in/yaml.v3"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -177,8 +180,76 @@ func main() {
 	// Optional: Set debounce time for window show/hide
 	systray.WindowDebounce(200 * time.Millisecond)
 
-	// Create tray menu with only Quit option
+	// 初始化 Dock/Taskbar 徽标服务（自定义样式）
+	dockService := dock.NewWithOptions(dock.BadgeOptions{
+		TextColour:       color.RGBA{R: 255, G: 255, B: 255, A: 255}, // 白色文字
+		BackgroundColour: color.RGBA{R: 239, G: 68, B: 68, A: 255},  // 靛蓝色背景 #6366f1
+		FontName:         "segoeuib.ttf",                              // Segoe UI Bold
+		FontSize:         10,
+		SmallFontSize:    8,
+	})
+	app.RegisterService(application.NewService(dockService))
+
+	// Create tray menu
 	menu := application.NewMenu()
+
+	// 待办提示子菜单
+	todoNotifyEnabled := false
+	var todoTickerStop chan struct{}
+
+	updateTodoBadge := func() {
+		todos, err := store.GetAllTodos()
+		if err != nil {
+			return
+		}
+		pending := 0
+		for _, t := range todos {
+			if !t.Completed {
+				pending++
+			}
+		}
+		if pending > 0 {
+			dockService.SetBadge(fmt.Sprintf("%d", pending))
+		} else {
+			dockService.RemoveBadge()
+		}
+	}
+
+	todoSubmenu := menu.AddSubmenu("待办提示")
+	todoSubmenu.Add("开启").OnClick(func(ctx *application.Context) {
+		if todoNotifyEnabled {
+			return
+		}
+		todoNotifyEnabled = true
+		updateTodoBadge()
+		stopCh := make(chan struct{})
+		todoTickerStop = stopCh
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					updateTodoBadge()
+				case <-stopCh:
+					return
+				}
+			}
+		}()
+	})
+	todoSubmenu.Add("关闭").OnClick(func(ctx *application.Context) {
+		if !todoNotifyEnabled {
+			return
+		}
+		todoNotifyEnabled = false
+		if todoTickerStop != nil {
+			close(todoTickerStop)
+			todoTickerStop = nil
+		}
+		dockService.RemoveBadge()
+	})
+
+	menu.AddSeparator()
 	menu.Add("退出 HappyTools").OnClick(func(ctx *application.Context) {
 		app.Quit()
 	})

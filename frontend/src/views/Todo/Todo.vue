@@ -526,6 +526,7 @@ async function saveEdit() {
 
     message.success('更新成功')
     editModalVisible.value = false
+    todoStats.refresh()
   } catch (e: any) {
     message.error('更新失败: ' + e.message)
   }
