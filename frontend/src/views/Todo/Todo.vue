@@ -240,12 +240,12 @@ import { TodoService, Todo } from '../../../bindings/github.com/Aliuyanfeng/happ
 import CategorySelector from './components/CategorySelector.vue'
 import TodoItem from './components/TodoItem.vue'
 import { useCategoryStore } from '../../stores/category'
+import { useTodoStatsStore } from '../../stores/todoStats'
 
 const todos = ref<Todo[]>([])
 const loading = ref(false)
-
-// 使用 Pinia store
 const categoryStore = useCategoryStore()
+const todoStats = useTodoStatsStore()
 const categories = computed(() => categoryStore.categories)
 
 // 分页相关
@@ -387,14 +387,9 @@ async function quickAdd() {
     )
     if (todo) {
       todos.value.unshift(todo)
-      // 重置表单
-      quickAddForm.value = {
-        title: '',
-        categoryId: null,
-        dueDate: null,
-        priority: 0
-      }
+      quickAddForm.value = { title: '', categoryId: null, dueDate: null, priority: 0 }
       message.success('添加成功')
+      todoStats.refresh()
     }
   } catch (e: any) {
     message.error('添加失败: ' + e.message)
@@ -467,6 +462,7 @@ async function toggleTodo(id: number) {
     const todo = todos.value.find(t => t.id === id)
     if (todo) {
       todo.completed = !todo.completed
+      todoStats.refresh()
     }
   } catch (e: any) {
     message.error('更新失败: ' + e.message)
@@ -479,6 +475,7 @@ async function deleteTodo(id: number) {
     await TodoService.Delete(id)
     todos.value = todos.value.filter(t => t.id !== id)
     message.success('删除成功')
+    todoStats.refresh()
   } catch (e: any) {
     message.error('删除失败: ' + e.message)
   }

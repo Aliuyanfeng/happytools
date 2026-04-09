@@ -17,7 +17,7 @@ import { theme as antTheme, notification, Button } from 'ant-design-vue';
 import TitleBar from './components/TitleBar.vue';
 import { useAppStore } from './stores/app';
 import { useSettingsStore } from './stores/settings';
-import {Events} from "@wailsio/runtime";
+import { Events } from "@wailsio/runtime";
 import { UpdateService } from '../bindings/github.com/Aliuyanfeng/happytools/backend/services/update/index'
 
 const { t } = useI18n();
@@ -25,89 +25,61 @@ const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
 const settingsStore = useSettingsStore();
-
+const appVersion = ref('')
 const showBackHome = computed(() => route.path !== '/');
 
-const lastUsedTime = ref<string>("")
-
-// 动态 antd 主题配置
 const antdTheme = computed(() => {
   const fontFamily = settingsStore.customFont
     ? `${settingsStore.customFont}, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
     : undefined
   return {
     algorithm: settingsStore.isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
-    token: {
-      fontSize: 14,
-      ...(fontFamily ? { fontFamily } : {}),
-    },
+    token: { fontSize: 14, ...(fontFamily ? { fontFamily } : {}) },
   }
 })
 
 function goHome() {
-  if (route.path !== '/') {
-    router.push('/');
-  }
+  if (route.path !== '/') router.push('/');
 }
-onMounted(()=>{
-  // 初始化设置
+
+onMounted(async () => {
   settingsStore.initSettings()
-  
+
+  // 获取版本号
+  try { appVersion.value = await UpdateService.GetCurrentVersion() } catch { appVersion.value = '' }
+
   Events.On('app:lastUsedTime', (event) => {
-    console.log(event)
-    if (event && event.data) {
-      console.log(event.data)
-      lastUsedTime.value = event.data
-      appStore.updateLastUsedTime(event.data)
-    }
+    if (event?.data) appStore.updateLastUsedTime(event.data)
   });
 
-  // 静默检查更新（延迟 3 秒，等前端完全加载）
+  // 静默检查更新
   setTimeout(async () => {
     try {
       const result = await UpdateService.CheckUpdate()
       if (!result?.hasUpdate) return
-
       const currentVersion = await UpdateService.GetCurrentVersion()
-
-      // 检查是否已忽略该版本（dev 模式不受忽略限制）
       const ignoredVersion = localStorage.getItem('ignoredUpdateVersion')
       if (ignoredVersion === result.latest && currentVersion !== 'dev') return
-
       notification.info({
         key: 'update-notify',
         message: `🎉 发现新版本 v${result.latest}`,
         description: `当前版本 ${currentVersion === 'dev' ? 'dev' : 'v' + currentVersion}，新版本已发布，建议更新。`,
         btn: () => h('div', { style: 'display:flex;gap:8px' }, [
-          h(Button, {
-            type: 'primary',
-            size: 'small',
-            onClick: () => {
-              import('@wailsio/runtime').then(({ Browser }) => {
-                Browser.OpenURL(result.releaseUrl)
-              })
-              notification.close('update-notify')
-            }
-          }, '前往下载'),
-          h(Button, {
-            size: 'small',
-            onClick: () => {
-              localStorage.setItem('ignoredUpdateVersion', result.latest)
-              notification.close('update-notify')
-            }
-          }, '忽略此版本'),
+          h(Button, { type: 'primary', size: 'small', onClick: () => {
+            import('@wailsio/runtime').then(({ Browser }) => Browser.OpenURL(result.releaseUrl))
+            notification.close('update-notify')
+          }}, '前往下载'),
+          h(Button, { size: 'small', onClick: () => {
+            localStorage.setItem('ignoredUpdateVersion', result.latest)
+            notification.close('update-notify')
+          }}, '忽略此版本'),
         ]),
         duration: 0,
         placement: 'bottomRight',
       })
-    } catch {
-      // 静默失败
-    }
+    } catch { /* 静默失败 */ }
   }, 3000)
 })
-
-
-
 </script>
 
 <template>
@@ -131,6 +103,7 @@ onMounted(()=>{
           </transition>
         </a-layout-content>
         <a-layout-footer class="app-footer">
+          <div class="footer-version">版本: v{{ appVersion }}</div>
           <div class="copyright">{{ t('app.lastUsed') }}: {{ appStore.lastUsedTime }}</div>
         </a-layout-footer>
       </a-layout>
@@ -237,7 +210,9 @@ html, body, #app {
 
   .app-footer {
     display: flex;
-    justify-content: right;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
     padding: 0 16px;
     height: 26px;
     line-height: 26px;
@@ -249,6 +224,14 @@ html, body, #app {
     border-top: 1px solid rgba(99,102,241,0.08);
     backdrop-filter: blur(10px);
   }
+}
+
+.footer-version {
+  font-size: 11px;
+  color: #c7d2fe;
+  font-style: normal;
+  font-weight: 500;
+  font-family: monospace;
 }
 
 .back-home-btn {

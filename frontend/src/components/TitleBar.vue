@@ -1,12 +1,14 @@
-<template>
+﻿<template>
   <div class="titlebar">
     <div class="titlebar-left" @dblclick="toggleMaximize">
-      <!-- <div class="app-icon">🔧</div> -->
-      <!-- <div class="app-title">happytools</div> -->
-      <img class=app-logo src="@/assets/images/logo.png" alt="">
+      <img class="app-logo" src="@/assets/images/logo.png" alt="">
     </div>
 
     <div class="titlebar-right">
+      <div v-if="todoStats.pendingCount > 0" class="todo-badge" @click="goTODO">
+        <CheckCircleOutlined class="todo-icon" />
+        <span>{{ todoStats.pendingCount }} 项待办</span>
+      </div>
       <button class="title-btn settings" :title="t('settings.title')" @mousedown.prevent="openSettings">
         <SettingOutlined class="icon" />
       </button>
@@ -27,12 +29,16 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Window } from '@wailsio/runtime'
-import { SettingOutlined, PushpinOutlined } from '@ant-design/icons-vue'
+import { SettingOutlined, PushpinOutlined, CheckCircleOutlined } from '@ant-design/icons-vue'
 import SettingsModal from './SettingsModal.vue'
 import { useSettingsStore } from '../stores/settings'
+import { useTodoStatsStore } from '../stores/todoStats'
+import { useRouter, useRoute } from 'vue-router'
 
+const router = useRouter()
 const { t } = useI18n()
 const settingsStore = useSettingsStore()
+const todoStats = useTodoStatsStore()
 const settingsVisible = ref(false)
 const isAlwaysOnTop = ref(false)
 
@@ -57,14 +63,17 @@ function openSettings() {
   settingsVisible.value = true
 }
 
+function goTODO() {
+  router.push('/todo')
+}
+
 async function toggleAlwaysOnTop() {
   isAlwaysOnTop.value = !isAlwaysOnTop.value
   await Window.SetAlwaysOnTop(isAlwaysOnTop.value)
 }
 
-// 为了兼容你给出的用法（直接使用 document.querySelector），同时在组件挂载时绑定选择器事件
 onMounted(() => {
- 
+  todoStats.refresh()
 })
 </script>
 
@@ -141,6 +150,24 @@ onMounted(() => {
 }
 .app-logo {
   height: 28px;
+}
+
+.todo-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(99,102,241,0.1);
+  color: #6366f1;
+  font-size: 11px;
+  font-weight: 600;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+}
+
+.todo-icon {
+  font-size: 11px;
 }
 
 .app-title {
