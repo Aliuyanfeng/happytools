@@ -61,6 +61,9 @@
                   <span v-if="day.report.summary" class="summary-tag">
                     {{ day.report.summary }}
                   </span>
+                  <div v-if="day.report.tags && day.report.tags.length" class="tags-row">
+                    <a-tag v-for="tag in day.report.tags" :key="tag" size="small">{{ tag }}</a-tag>
+                  </div>
                 </div>
               </div>
               <div v-else class="no-report">
@@ -111,10 +114,25 @@
       v-model:open="editModalVisible"
       :title="editModalTitle"
       width="600px"
-      @ok="handleSaveReport"
       @cancel="handleCancelEdit"
       :bodyStyle="{ padding: '20px', maxHeight: '60vh', overflowY: 'auto' }"
     >
+      <template #footer>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <a-button
+            v-if="editForm.isEditing"
+            danger
+            @click="handleDeleteReport"
+          >
+            <DeleteOutlined /> 删除日报
+          </a-button>
+          <div v-else />
+          <a-space>
+            <a-button @click="handleCancelEdit">取消</a-button>
+            <a-button type="primary" @click="handleSaveReport">保存</a-button>
+          </a-space>
+        </div>
+      </template>
       <a-form layout="vertical">
         <a-row :gutter="12">
           <a-col :span="12">
@@ -170,6 +188,7 @@
             v-model:value="editForm.tags"
             mode="tags"
             placeholder="添加标签（可选）"
+            :options="[...new Set([...allTags, ...editForm.tags])].map(t => ({ value: t, label: t }))"
             style="width: 100%"
           />
         </a-form-item>
@@ -180,7 +199,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import {
   LeftOutlined,
   RightOutlined,
@@ -188,7 +207,8 @@ import {
   CheckCircleFilled,
   EditOutlined,
   CalendarOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  DeleteOutlined
 } from '@ant-design/icons-vue'
 import dayjs, { Dayjs } from 'dayjs'
 import * as DailyReportService from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/dailyreport/dailyreportservice'
@@ -207,12 +227,27 @@ const editModalVisible = ref(false)
 const editModalTitle = ref('编辑日报')
 const editForm = ref({
   date: dayjs().format('YYYY-MM-DD'),
+  originalDate: '',
   content: '',
   summary: '',
   tags: [] as string[],
   isPeriod: false,
-  periodRange: [] as string[]
+  periodRange: [] as string[],
+  isEditing: false,
+  reportId: 0
 })
+
+// 全局标签列表
+const allTags = ref<string[]>([])
+
+const loadAllTags = async () => {
+  try {
+    const tags = await DailyReportService.GetAllTags()
+    allTags.value = tags || []
+  } catch (e) {
+    console.error('加载标签失败', e)
+  }
+}
 
 // 星期名称
 const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
@@ -220,8 +255,8 @@ const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '�
 // 日期显示
 const dateDisplay = computed(() => {
   if (viewMode.value === 'week') {
-    const startOfWeek = currentDate.value.startOf('week')
-    const endOfWeek = currentDate.value.endOf('week')
+    const startOfWeek = currentDate.value.startOf('week').add(1, 'day')
+    const endOfWeek = startOfWeek.add(6, 'day')
     return `${startOfWeek.format('YYYY年MM月DD日')} - ${endOfWeek.format('MM月DD日')}`
   } else {
     return currentDate.value.format('YYYY年MM月')
@@ -230,7 +265,7 @@ const dateDisplay = computed(() => {
 
 // 周视图数据
 const weekDays = computed(() => {
-  const startOfWeek = currentDate.value.startOf('week')
+  const startOfWeek = currentDate.value.startOf('week').add(1, 'day')
   const days: any[] = []
 
   for (let i = 0; i < 7; i++) {
@@ -328,8 +363,8 @@ const loadReports = async () => {
     let endDate: string
 
     if (viewMode.value === 'week') {
-      startDate = currentDate.value.startOf('week').format('YYYY-MM-DD')
-      endDate = currentDate.value.endOf('week').format('YYYY-MM-DD')
+      startDate = currentDate.value.startOf('week').add(1, 'day').format('YYYY-MM-DD')
+      endDate = currentDate.value.startOf('week').add(7, 'day').format('YYYY-MM-DD')
     } else {
       startDate = currentDate.value.startOf('month').format('YYYY-MM-DD')
       endDate = currentDate.value.endOf('month').format('YYYY-MM-DD')
@@ -381,6 +416,7 @@ const handleToday = () => {
 // 处理日期点击
 const handleDayClick = async (day: any) => {
   editForm.value.date = day.date
+  editForm.value.originalDate = day.date
   editForm.value.isPeriod = false
   editForm.value.periodRange = []
   
@@ -388,12 +424,16 @@ const handleDayClick = async (day: any) => {
     editModalTitle.value = `编辑日报 - ${day.date}`
     editForm.value.content = day.report.content
     editForm.value.summary = day.report.summary || ''
-    editForm.value.tags = day.report.tags || []
+    editForm.value.tags = day.report.tags ? [...day.report.tags] : []
+    editForm.value.isEditing = true
+    editForm.value.reportId = day.report.id
   } else {
     editModalTitle.value = `新建日报 - ${day.date}`
     editForm.value.content = ''
     editForm.value.summary = ''
     editForm.value.tags = []
+    editForm.value.isEditing = false
+    editForm.value.reportId = 0
   }
   
   editModalVisible.value = true
@@ -433,15 +473,43 @@ const handleSaveReport = async () => {
         editForm.value.summary,
         editForm.value.tags
       )
+      // 编辑模式下日期发生变化，删除原日期的日报（移动而非复制）
+      if (editForm.value.isEditing && editForm.value.date !== editForm.value.originalDate) {
+        await DailyReportService.Delete(editForm.value.reportId)
+      }
       message.success('保存成功')
     }
 
     editModalVisible.value = false
     loadReports()
+    loadAllTags()
   } catch (error) {
     message.error('保存失败')
     console.error(error)
   }
+}
+
+// 删除日报
+const handleDeleteReport = () => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除 ${editForm.value.date} 的日报吗？此操作不可恢复。`,
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        await DailyReportService.Delete(editForm.value.reportId)
+        message.success('删除成功')
+        editModalVisible.value = false
+        loadReports()
+        loadAllTags()
+      } catch (error) {
+        message.error('删除失败')
+        console.error(error)
+      }
+    }
+  })
 }
 
 // 取消编辑
@@ -452,6 +520,7 @@ const handleCancelEdit = () => {
 // 初始化
 onMounted(() => {
   loadReports()
+  loadAllTags()
 })
 </script>
 
@@ -623,6 +692,13 @@ onMounted(() => {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid #f0f0f0;
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .summary-tag {

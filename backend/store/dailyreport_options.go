@@ -192,6 +192,38 @@ func DeleteDailyReport(id int) error {
 	})
 }
 
+// GetAllDailyReportTags 获取所有日报中使用过的标签（去重排序）
+func GetAllDailyReportTags() ([]string, error) {
+	seen := make(map[string]struct{})
+	err := DB.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(dailyReportBucket)
+		if b == nil {
+			return nil
+		}
+		return b.ForEach(func(k, v []byte) error {
+			var r DailyReport
+			if err := json.Unmarshal(v, &r); err != nil {
+				return nil
+			}
+			for _, tag := range r.Tags {
+				if tag != "" {
+					seen[tag] = struct{}{}
+				}
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	tags := make([]string, 0, len(seen))
+	for tag := range seen {
+		tags = append(tags, tag)
+	}
+	sort.Strings(tags)
+	return tags, nil
+}
+
 // GetDailyReportStats 获取日报统计
 func GetDailyReportStats() (*DailyReportStats, error) {
 	stats := &DailyReportStats{}

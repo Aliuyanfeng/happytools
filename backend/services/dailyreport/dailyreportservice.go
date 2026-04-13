@@ -114,6 +114,11 @@ func (d *DailyReportService) Delete(id int) error {
 	return store.DeleteDailyReport(id)
 }
 
+// GetAllTags 获取所有日报中使用过的标签（去重）
+func (d *DailyReportService) GetAllTags() ([]string, error) {
+	return store.GetAllDailyReportTags()
+}
+
 // GetStats 获取日报统计
 func (d *DailyReportService) GetStats() (*DailyReportStats, error) {
 	stats, err := store.GetDailyReportStats()
