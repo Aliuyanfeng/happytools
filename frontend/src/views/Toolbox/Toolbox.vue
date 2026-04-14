@@ -42,22 +42,24 @@
         <!-- 辅助工具分类 -->
         <a-menu-item-group key="tools" :title="t('toolbox.categoryTools')">
           <a-menu-item key="encryption">
-            <template #icon>
-              <SafetyOutlined />
-            </template>
+            <template #icon><SafetyOutlined /></template>
             <span v-if="!isCollapsed">{{ t('toolbox.menuEncryption') }}</span>
           </a-menu-item>
           <a-menu-item key="png-injector">
-            <template #icon>
-              <FileImageOutlined />
-            </template>
+            <template #icon><FileImageOutlined /></template>
             <span v-if="!isCollapsed">{{ t('toolbox.menuPngInjector') }}</span>
           </a-menu-item>
           <a-menu-item key="batch-rename">
-            <template #icon>
-              <EditOutlined />
-            </template>
+            <template #icon><EditOutlined /></template>
             <span v-if="!isCollapsed">{{ t('toolbox.menuBatchRename') }}</span>
+          </a-menu-item>
+        </a-menu-item-group>
+
+        <!-- 格式转换分类 -->
+        <a-menu-item-group key="format-convert" title="格式转换">
+          <a-menu-item key="ncm-converter">
+            <template #icon><SoundOutlined /></template>
+            <span v-if="!isCollapsed">NCM 转 MP3</span>
           </a-menu-item>
         </a-menu-item-group>
       </a-menu>
@@ -127,6 +129,7 @@ import {
   NumberOutlined,
   ClockCircleOutlined,
   BgColorsOutlined,
+  SoundOutlined,
 } from '@ant-design/icons-vue'
 
 const { t } = useI18n()
@@ -146,6 +149,7 @@ const currentTool = computed(() => {
   if (path.includes('encryption')) return 'encryption'
   if (path.includes('png-injector')) return 'png-injector'
   if (path.includes('batch-rename')) return 'batch-rename'
+  if (path.includes('ncm-converter')) return 'ncm-converter'
   return ''
 })
 

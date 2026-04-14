@@ -75,10 +75,14 @@ const routes: Array<RouteRecordRaw> = [
             {
                 path: 'batch-rename',
                 name: 'batch-rename',
-                meta: {
-                    title: '批量重命名'
-                },
+                meta: { title: '批量重命名' },
                 component: () => import('../views/Toolbox/BatchRename.vue')
+            },
+            {
+                path: 'ncm-converter',
+                name: 'ncm-converter',
+                meta: { title: 'NCM 转 MP3' },
+                component: () => import('../views/Toolbox/NcmConverter.vue')
             }
         ]
     },
