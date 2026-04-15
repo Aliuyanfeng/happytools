@@ -34,8 +34,12 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
 
 .codeartsdoer
+.skills
+.skill
+.kiro
+.arts
 frontend/bindings
