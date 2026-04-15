@@ -35,7 +35,7 @@ go.work.sum
 
 # Editor/IDE
 .idea/
-.vscode2/
+.vscode/
 
 .codeartsdoer
 .skills
