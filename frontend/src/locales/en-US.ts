@@ -38,6 +38,7 @@
       dailyReport: 'Daily Report',
       gitConfig: 'Git Config Manager',
       makefileEditor: 'Makefile Editor',
+      nucleiParser: 'POC Template Parser',
     },
   },
   settings: {

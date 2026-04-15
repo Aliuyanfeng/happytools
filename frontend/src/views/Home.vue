@@ -74,6 +74,7 @@ import {
   DashboardOutlined, CheckCircleOutlined, ToolOutlined,
   SafetyOutlined, ApartmentOutlined, CalendarOutlined,
   BranchesOutlined, FileTextOutlined, ArrowRightOutlined,
+  BugOutlined,
 } from '@ant-design/icons-vue'
 import { modules } from '@/config/modules'
 import { useSettingsStore } from '@/stores/settings'
@@ -89,7 +90,7 @@ const visibleModules = computed(() =>
 const iconMap: Record<string, any> = {
   DashboardOutlined, CheckCircleOutlined, ToolOutlined,
   SafetyOutlined, ApartmentOutlined, CalendarOutlined,
-  BranchesOutlined, FileTextOutlined,
+  BranchesOutlined, FileTextOutlined, BugOutlined,
 }
 function getIconComponent(n: string) { return iconMap[n] || DashboardOutlined }
 function go(path: string) { router.push(path) }

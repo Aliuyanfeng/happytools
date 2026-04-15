@@ -38,6 +38,7 @@
       dailyReport: '日报管理',
       gitConfig: 'Git 配置管理',
       makefileEditor: 'Makefile 编辑器',
+      nucleiParser: 'POC 模板解析',
     },
   },
   settings: {

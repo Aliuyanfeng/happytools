@@ -28,10 +28,35 @@ var ncmMagic = []byte{0x43, 0x54, 0x45, 0x4E, 0x46, 0x44, 0x41, 0x4D}
 
 // ConvertResult 单个文件转换结果
 type ConvertResult struct {
-	Input   string `json:"input"`
-	Output  string `json:"output"`
-	Success bool   `json:"success"`
-	Error   string `json:"error,omitempty"`
+	Input      string `json:"input"`
+	Output     string `json:"output"`
+	Success    bool   `json:"success"`
+	Error      string `json:"error,omitempty"`
+	LrcCopied  bool   `json:"lrc_copied"`
+}
+
+// CheckLrc 检查 NCM 文件同目录下是否存在同名 .lrc 文件，返回 lrc 路径（不存在则返回空）
+func (s *NCMService) CheckLrc(ncmPath string) string {
+	return findLrc(ncmPath)
+}
+
+// CheckLrcBatch 批量检查，返回 map[ncmPath]lrcPath
+func (s *NCMService) CheckLrcBatch(ncmPaths []string) map[string]string {
+	result := make(map[string]string, len(ncmPaths))
+	for _, p := range ncmPaths {
+		result[p] = findLrc(p)
+	}
+	return result
+}
+
+// findLrc 查找同名 lrc 文件路径，不存在返回空字符串
+func findLrc(ncmPath string) string {
+	base := strings.TrimSuffix(ncmPath, filepath.Ext(ncmPath))
+	lrc := base + ".lrc"
+	if _, err := os.Stat(lrc); err == nil {
+		return lrc
+	}
+	return ""
 }
 
 // NCMService NCM 转换服务
@@ -69,6 +94,39 @@ func (s *NCMService) SelectFiles() ([]string, error) {
 	return files, nil
 }
 
+// SelectDir 选择目录并返回其中所有 NCM 文件路径
+func (s *NCMService) SelectDir() ([]string, error) {
+	dir, err := s.app.Dialog.OpenFile().
+		SetTitle("选择包含 NCM 文件的目录").
+		CanChooseDirectories(true).
+		CanChooseFiles(false).
+		PromptForSingleSelection()
+	if err != nil || dir == "" {
+		return nil, err
+	}
+	return scanNCMFiles(dir)
+}
+
+// ScanDir 扫描指定目录下所有 NCM 文件（供前端拖拽目录时调用）
+func (s *NCMService) ScanDir(dir string) ([]string, error) {
+	return scanNCMFiles(dir)
+}
+
+// scanNCMFiles 递归扫描目录下所有 .ncm 文件
+func scanNCMFiles(dir string) ([]string, error) {
+	var result []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // 跳过无权限目录
+		}
+		if !info.IsDir() && strings.ToLower(filepath.Ext(path)) == ".ncm" {
+			result = append(result, path)
+		}
+		return nil
+	})
+	return result, err
+}
+
 // OpenOutputDir 在系统文件管理器中打开指定目录
 func (s *NCMService) OpenOutputDir(dir string) error {
 	if dir == "" {
@@ -86,7 +144,26 @@ func (s *NCMService) OpenOutputDir(dir string) error {
 	return cmd.Start()
 }
 
-// ConvertFiles 批量转换 NCM 文件，outputDir 为空时输出到原文件目录
+// ConvertOne 转换单个 NCM 文件
+func (s *NCMService) ConvertOne(file string, outputDir string) (*ConvertResult, error) {
+	outDir := outputDir
+	if outDir == "" {
+		outDir = filepath.Dir(file)
+	}
+	outPath, err := convertNCM(file, outDir)
+	if err != nil {
+		return &ConvertResult{Input: file, Success: false, Error: err.Error()}, nil
+	}
+	r := &ConvertResult{Input: file, Output: outPath, Success: true}
+	if lrcSrc := findLrc(file); lrcSrc != "" {
+		baseName := strings.TrimSuffix(filepath.Base(outPath), filepath.Ext(outPath))
+		lrcDst := filepath.Join(outDir, baseName+".lrc")
+		if copyErr := copyFile(lrcSrc, lrcDst); copyErr == nil {
+			r.LrcCopied = true
+		}
+	}
+	return r, nil
+}
 func (s *NCMService) ConvertFiles(files []string, outputDir string) ([]ConvertResult, error) {
 	results := make([]ConvertResult, 0, len(files))
 	for _, f := range files {
@@ -101,15 +178,32 @@ func (s *NCMService) ConvertFiles(files []string, outputDir string) ([]ConvertRe
 				Success: false,
 				Error:   err.Error(),
 			})
-		} else {
-			results = append(results, ConvertResult{
-				Input:   f,
-				Output:  outPath,
-				Success: true,
-			})
+			continue
 		}
+
+		r := ConvertResult{Input: f, Output: outPath, Success: true}
+
+		// 复制同名 lrc 文件
+		if lrcSrc := findLrc(f); lrcSrc != "" {
+			baseName := strings.TrimSuffix(filepath.Base(outPath), filepath.Ext(outPath))
+			lrcDst := filepath.Join(outDir, baseName+".lrc")
+			if copyErr := copyFile(lrcSrc, lrcDst); copyErr == nil {
+				r.LrcCopied = true
+			}
+		}
+
+		results = append(results, r)
 	}
 	return results, nil
+}
+
+// copyFile 复制文件
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0644)
 }
 
 // ─── 核心转换逻辑 ───────────────────────────────────────────────

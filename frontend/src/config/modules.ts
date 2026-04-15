@@ -89,6 +89,15 @@ export const modules: ModuleConfig[] = [
     icon: 'FileTextOutlined',
     theme: 'orange',
     tags: []
+  },
+  {
+    id: 'nucleiParser',
+    nameKey: 'home.modules.nucleiParser',
+    description: 'Nuclei POC 模板可视化解析，支持 HTTP/DNS/TCP 协议',
+    path: '/nuclei-parser',
+    icon: 'BugOutlined',
+    theme: 'red',
+    tags: ['nuclei', 'poc', '漏洞', '模板']
   }
 ]
 

@@ -129,10 +129,14 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/makefile-editor',
         name: 'makefile-editor',
-        meta: {
-            title: 'Makefile 编辑器'
-        },
+        meta: { title: 'Makefile 编辑器' },
         component: () => import('../views/MakefileEditor/MakefileEditor.vue')
+    },
+    {
+        path: '/nuclei-parser',
+        name: 'nuclei-parser',
+        meta: { title: 'POC 模板解析' },
+        component: () => import('../views/NucleiParser/NucleiParser.vue')
     }
 ];
 

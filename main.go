@@ -29,6 +29,7 @@ import (
 	gitconfig "github.com/Aliuyanfeng/happytools/backend/services/gitconfig"
 	"github.com/Aliuyanfeng/happytools/backend/services/makefile"
 	"github.com/Aliuyanfeng/happytools/backend/services/ncm"
+	"github.com/Aliuyanfeng/happytools/backend/services/nuclei"
 	"github.com/Aliuyanfeng/happytools/backend/services/pnginjector"
 	"github.com/Aliuyanfeng/happytools/backend/services/greetservice"
 	"github.com/Aliuyanfeng/happytools/backend/services/monitor"
@@ -122,6 +123,7 @@ func main() {
 	app.RegisterService(application.NewService(gitconfig.NewGitConfigService(app)))
 	app.RegisterService(application.NewService(makefile.NewMakefileService(app)))
 	app.RegisterService(application.NewService(ncm.NewNCMService(app)))
+	app.RegisterService(application.NewService(nuclei.NewNucleiService(app)))
 	app.RegisterService(application.NewService(update.NewUpdateService(appVersion, "Aliuyanfeng", "happytools")))
 
 	// Create a new window with the necessary options.

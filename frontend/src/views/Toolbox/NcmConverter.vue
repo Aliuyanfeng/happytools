@@ -2,14 +2,35 @@
   <div class="ncm-page">
     <!-- 输出目录 -->
     <div class="section">
-      <div class="section-label">输出目录</div>
+      <div class="section-label">
+        输出目录
+        <span v-if="isDefault" class="default-badge">默认</span>
+      </div>
       <div class="dir-row">
         <div class="dir-display" :class="{ placeholder: !outputDir }">
           {{ outputDir || '默认输出到原文件所在目录' }}
         </div>
         <a-button size="small" @click="selectOutputDir">选择目录</a-button>
-        <a-button size="small" type="text" v-if="outputDir" @click="outputDir = ''" danger>清除</a-button>
+        <a-tooltip :title="isDefault ? '取消默认目录' : '设为默认目录'" v-if="outputDir">
+          <a-button
+            size="small"
+            :type="isDefault ? 'primary' : 'default'"
+            @click="toggleDefault"
+          >
+            {{ isDefault ? '取消默认' : '设为默认' }}
+          </a-button>
+        </a-tooltip>
+        <a-button size="small" type="text" v-if="outputDir" @click="clearOutputDir" danger>清除</a-button>
       </div>
+    </div>
+
+    <!-- 输入模式切换 -->
+    <div class="section">
+      <div class="section-label">输入模式</div>
+      <a-radio-group v-model:value="inputMode" button-style="solid" size="small">
+        <a-radio-button value="files">选择文件</a-radio-button>
+        <a-radio-button value="dir">选择目录</a-radio-button>
+      </a-radio-group>
     </div>
 
     <!-- 拖拽 / 选择区域 -->
@@ -20,12 +41,18 @@
       @dragover.prevent="isDragging = true"
       @dragleave="isDragging = false"
       @drop.prevent="onDrop"
-      @click="selectFiles"
+      @click="inputMode === 'dir' ? selectDir() : selectFiles()"
     >
       <template v-if="files.length === 0">
         <div class="drop-icon">🎵</div>
-        <div class="drop-text">拖拽 NCM 文件到此处</div>
-        <div class="drop-hint">或点击选择文件，支持批量</div>
+        <template v-if="inputMode === 'files'">
+          <div class="drop-text">拖拽 NCM 文件到此处</div>
+          <div class="drop-hint">或点击选择文件，支持批量</div>
+        </template>
+        <template v-else>
+          <div class="drop-text">拖拽目录到此处</div>
+          <div class="drop-hint">或点击选择目录，自动扫描所有 NCM 文件</div>
+        </template>
       </template>
       <template v-else>
         <div class="drop-icon small">🎵</div>
@@ -46,6 +73,7 @@
             <span class="file-dir">{{ dirname(f.path) }}</span>
           </div>
           <div class="file-status">
+            <span v-if="f.hasLrc" class="lrc-badge" title="存在歌词文件">🎵 LRC</span>
             <span v-if="f.status === 'pending'" class="status-pending">等待中</span>
             <span v-else-if="f.status === 'converting'" class="status-converting">
               <LoadingOutlined /> 转换中
@@ -113,12 +141,46 @@ interface FileItem {
   path: string
   status: 'pending' | 'converting' | 'done' | 'error'
   error?: string
+  hasLrc?: boolean
 }
 
 const outputDir = ref('')
 const files = ref<FileItem[]>([])
 const converting = ref(false)
 const isDragging = ref(false)
+const inputMode = ref<'files' | 'dir'>('files')
+const isDefault = ref(false)
+
+const DEFAULT_DIR_KEY = 'ncm-default-output-dir'
+
+function loadDefaultDir() {
+  const saved = localStorage.getItem(DEFAULT_DIR_KEY)
+  if (saved) {
+    outputDir.value = saved
+    isDefault.value = true
+  }
+}
+
+function toggleDefault() {
+  if (isDefault.value) {
+    localStorage.removeItem(DEFAULT_DIR_KEY)
+    isDefault.value = false
+    message.success('已取消默认输出目录')
+  } else {
+    localStorage.setItem(DEFAULT_DIR_KEY, outputDir.value)
+    isDefault.value = true
+    message.success('已设为默认输出目录')
+  }
+}
+
+function clearOutputDir() {
+  // 清除目录时如果是默认目录，同时清除默认设置
+  if (isDefault.value) {
+    localStorage.removeItem(DEFAULT_DIR_KEY)
+    isDefault.value = false
+  }
+  outputDir.value = ''
+}
 
 const doneCount = computed(() => files.value.filter(f => f.status === 'done').length)
 const errorCount = computed(() => files.value.filter(f => f.status === 'error').length)
@@ -142,20 +204,36 @@ function dirname(p: string) {
   return parts.join('/') || p
 }
 
-function addPaths(paths: string[]) {
+async function addPaths(paths: string[]) {
   const ncmPaths = paths.filter(p => p.toLowerCase().endsWith('.ncm'))
   if (ncmPaths.length === 0) {
-    message.warning('请选择 .ncm 格式文件')
+    message.warning('未找到 .ncm 格式文件')
     return
   }
   const existing = new Set(files.value.map(f => f.path))
-  const newItems = ncmPaths
-    .filter(p => !existing.has(p))
-    .map(p => ({ path: p, status: 'pending' as const }))
-  files.value.push(...newItems)
-  if (newItems.length < ncmPaths.length) {
-    message.info(`已过滤 ${ncmPaths.length - newItems.length} 个重复文件`)
+  const newPaths = ncmPaths.filter(p => !existing.has(p))
+  if (newPaths.length === 0) {
+    message.info('所选文件已全部添加')
+    return
   }
+
+  // 批量检查 lrc
+  let lrcMap: Record<string, string> = {}
+  try {
+    lrcMap = await NCMService.CheckLrcBatch(newPaths) ?? {}
+  } catch {}
+
+  const newItems: FileItem[] = newPaths.map(p => ({
+    path: p,
+    status: 'pending' as const,
+    hasLrc: !!(lrcMap[p])
+  }))
+  files.value.push(...newItems)
+
+  if (newPaths.length < ncmPaths.length) {
+    message.info(`已过滤 ${ncmPaths.length - newPaths.length} 个重复文件`)
+  }
+  message.success(`已添加 ${newItems.length} 个文件`)
 }
 
 function onDrop(e: DragEvent) {
@@ -166,14 +244,27 @@ function onDrop(e: DragEvent) {
 async function selectFiles() {
   try {
     const paths = await NCMService.SelectFiles()
-    if (paths?.length) addPaths(paths)
+    if (paths?.length) await addPaths(paths)
+  } catch {}
+}
+
+async function selectDir() {
+  try {
+    const paths = await NCMService.SelectDir()
+    if (paths?.length) await addPaths(paths)
+    else message.warning('该目录下未找到 NCM 文件')
   } catch {}
 }
 
 async function selectOutputDir() {
   try {
     const dir = await NCMService.SelectOutputDir()
-    if (dir) outputDir.value = dir
+    if (dir) {
+      outputDir.value = dir
+      // 检查是否和已保存的默认目录一致
+      const saved = localStorage.getItem(DEFAULT_DIR_KEY)
+      isDefault.value = saved === dir
+    }
   } catch {}
 }
 
@@ -206,39 +297,37 @@ async function startConvert() {
   if (converting.value || files.value.length === 0) return
   converting.value = true
 
-  // 重置状态
+  // 重置所有状态为 pending
   files.value.forEach(f => { f.status = 'pending'; f.error = undefined })
 
-  const paths = files.value.map(f => f.path)
+  let doneN = 0
+  let failN = 0
 
-  // 标记全部为转换中
-  files.value.forEach(f => { f.status = 'converting' })
-
-  try {
-    const results = await NCMService.ConvertFiles(paths, outputDir.value)
-    results.forEach(r => {
-      const item = files.value.find(f => f.path === r.input)
-      if (!item) return
-      if (r.success) {
-        item.status = 'done'
+  for (const f of files.value) {
+    f.status = 'converting'
+    try {
+      const r = await NCMService.ConvertOne(f.path, outputDir.value)
+      if (r?.success) {
+        f.status = 'done'
+        doneN++
       } else {
-        item.status = 'error'
-        item.error = r.error
+        f.status = 'error'
+        f.error = r?.error ?? '未知错误'
+        failN++
       }
-    })
-
-    const done = results.filter(r => r.success).length
-    const fail = results.filter(r => !r.success).length
-    if (fail === 0) {
-      message.success(`全部转换完成，共 ${done} 个文件`)
-    } else {
-      message.warning(`完成 ${done} 个，失败 ${fail} 个`)
+    } catch (e: any) {
+      f.status = 'error'
+      f.error = e?.message ?? '未知错误'
+      failN++
     }
-  } catch (e: any) {
-    message.error('转换失败: ' + e.message)
-    files.value.forEach(f => { if (f.status === 'converting') f.status = 'error' })
-  } finally {
-    converting.value = false
+  }
+
+  converting.value = false
+
+  if (failN === 0) {
+    message.success(`全部转换完成，共 ${doneN} 个文件`)
+  } else {
+    message.warning(`完成 ${doneN} 个，失败 ${failN} 个`)
   }
 }
 
@@ -246,10 +335,27 @@ async function startConvert() {
 let offFileDrop: (() => void) | null = null
 
 onMounted(() => {
-  offFileDrop = Events.On('wails:file-drop', (event: any) => {
+  loadDefaultDir()
+  offFileDrop = Events.On('wails:file-drop', async (event: any) => {
     const data = event?.data
     const dropped: string[] = Array.isArray(data?.files) ? data.files : []
-    if (dropped.length) addPaths(dropped)
+    if (!dropped.length) return
+
+    isDragging.value = false
+
+    if (inputMode.value === 'dir') {
+      for (const p of dropped) {
+        try {
+          const paths = await NCMService.ScanDir(p)
+          if (paths?.length) await addPaths(paths)
+          else message.warning(`目录 "${basename(p)}" 下未找到 NCM 文件`)
+        } catch {
+          await addPaths([p])
+        }
+      }
+    } else {
+      await addPaths(dropped)
+    }
   })
 })
 
@@ -275,6 +381,18 @@ onUnmounted(() => {
   font-weight: 600;
   color: #555;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.default-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: #1677ff;
+  background: #e6f4ff;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 
 .dir-row {
@@ -422,6 +540,18 @@ onUnmounted(() => {
 .file-status {
   font-size: 12px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lrc-badge {
+  font-size: 11px;
+  color: #1677ff;
+  background: #e6f4ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 .status-pending  { color: #bbb; }
