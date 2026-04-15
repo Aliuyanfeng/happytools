@@ -1,47 +1,41 @@
 
+<a name="v1.1.2"></a>
+## [v1.1.2](https://github.com/Aliuyanfeng/happytools/compare/v1.1.1...v1.1.2)
+
+> 2026-04-15
+
+### Features
+
+* 新增poc parser
+* 新增ncm格式转换
+* 增加系统托盘徽标显示
+* 新增titlebar显示剩余待办数量
+
+### Fixed
+
+* 修复日报已知问题
+
+
 <a name="v1.1.1"></a>
-## [v1.1.1](https://github.com/Aliuyanfeng/happytools/compare/v1.1.2...v1.1.1)
+## [v1.1.1](https://github.com/Aliuyanfeng/happytools/compare/v1.1.0...v1.1.1)
 
 > 2026-04-01
 
 ### Build
 
 * update v1.1.1
+* update v1.1.1
+* update v1.1.2
+* update v1.1.1
+* update v1.1.1
+* update v1.1.1
+* update v1.1.1
 
 ### Fixed
 
 * 变更版本号
 * 修复检查更新问题，修复已知问题
-
-
-<a name="v1.1.2"></a>
-## [v1.1.2](https://github.com/Aliuyanfeng/happytools/compare/0d...v1.1.2)
-
-> 2026-03-31
-
-### Build
-
-* update v1.1.2
-
-### Fixed
-
 * 修复版本号检查
-
-
-<a name="0d"></a>
-## [0d](https://github.com/Aliuyanfeng/happytools/compare/v1.1.0...0d)
-
-> 2026-03-31
-
-### Build
-
-* update v1.1.1
-* update v1.1.1
-* update v1.1.1
-* update v1.1.1
-
-### Fixed
-
 * 修复检查更新版本号问题 feat: 增加关于页面
 
 
