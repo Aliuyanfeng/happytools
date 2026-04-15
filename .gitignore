@@ -34,8 +34,8 @@ go.work.sum
 .env
 
 # Editor/IDE
-.idea2/
-.vscode/
+.idea/
+.vscode2/
 
 .codeartsdoer
 .skills
