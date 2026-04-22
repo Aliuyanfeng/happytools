@@ -60,7 +60,7 @@
               <div class="periodic-row">
                 <a-switch v-model:checked="periodicSend" size="small" />
                 <a-input-number
-                  v-if="periodicSend"
+                  
                   v-model:value="periodicInterval"
                   :min="100"
                   :max="60000"
@@ -68,7 +68,7 @@
                   size="small"
                   style="width: 70px"
                 />
-                <span v-if="periodicSend" class="unit-label">ms</span>
+                <span class="unit-label">ms</span>
               </div>
             </div>
           </div>
@@ -208,6 +208,12 @@ import { TCPUDPService, type ConnectionStatus, type MessageResult } from '../../
 
 const { t } = useI18n()
 
+message.config({
+  top: `100px`,
+  duration: 2,
+  maxCount: 1,
+});
+
 // 协议列表
 const protocols = [
   { key: 'udp', name: 'UDP', icon: WifiOutlined },
@@ -327,7 +333,7 @@ async function sendDataToTarget() {
       // 更新统计
       sendCount.value++
       sendBytes.value += result.length || 0
-      message.success(t('network.sendSuccess'))
+      // message.success(t('network.sendSuccess'))
     } else if (result) {
       message.error(result.message)
     }

@@ -53,6 +53,10 @@
             <template #icon><EditOutlined /></template>
             <span v-if="!isCollapsed">{{ t('toolbox.menuBatchRename') }}</span>
           </a-menu-item>
+          <a-menu-item key="checksum">
+            <template #icon><SafetyCertificateOutlined /></template>
+            <span v-if="!isCollapsed">校验和计算</span>
+          </a-menu-item>
         </a-menu-item-group>
 
         <!-- 格式转换分类 -->
@@ -130,6 +134,7 @@ import {
   ClockCircleOutlined,
   BgColorsOutlined,
   SoundOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons-vue'
 
 const { t } = useI18n()
@@ -150,6 +155,7 @@ const currentTool = computed(() => {
   if (path.includes('png-injector')) return 'png-injector'
   if (path.includes('batch-rename')) return 'batch-rename'
   if (path.includes('ncm-converter')) return 'ncm-converter'
+  if (path.includes('checksum')) return 'checksum'
   return ''
 })
 

@@ -83,6 +83,12 @@ const routes: Array<RouteRecordRaw> = [
                 name: 'ncm-converter',
                 meta: { title: 'NCM 转 MP3' },
                 component: () => import('../views/Toolbox/NcmConverter.vue')
+            },
+            {
+                path: 'checksum',
+                name: 'checksum',
+                meta: { title: '校验和计算' },
+                component: () => import('../views/Toolbox/Checksum.vue')
             }
         ]
     },

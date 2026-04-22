@@ -30,6 +30,7 @@ import (
 	"github.com/Aliuyanfeng/happytools/backend/services/makefile"
 	"github.com/Aliuyanfeng/happytools/backend/services/ncm"
 	"github.com/Aliuyanfeng/happytools/backend/services/nuclei"
+	"github.com/Aliuyanfeng/happytools/backend/services/checksum"
 	"github.com/Aliuyanfeng/happytools/backend/services/pnginjector"
 	"github.com/Aliuyanfeng/happytools/backend/services/greetservice"
 	"github.com/Aliuyanfeng/happytools/backend/services/monitor"
@@ -125,6 +126,7 @@ func main() {
 	app.RegisterService(application.NewService(ncm.NewNCMService(app)))
 	app.RegisterService(application.NewService(nuclei.NewNucleiService(app)))
 	app.RegisterService(application.NewService(update.NewUpdateService(appVersion, "Aliuyanfeng", "happytools")))
+	app.RegisterService(application.NewService(checksum.NewChecksumService(app)))
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
