@@ -180,19 +180,227 @@
       </div>
     </div>
 
-    <!-- TCP 调试面板 (预留) -->
+    <!-- TCP 调试面板 -->
     <div v-else-if="activeProtocol === 'tcp'" class="debug-panel">
-      <div class="coming-soon">
-        <ApiOutlined class="coming-icon" />
-        <span>{{ t('network.tcpComingSoon') }}</span>
+      <div class="panel-content">
+        <!-- 左侧配置 -->
+        <div class="config-section">
+          <!-- 模式切换 -->
+          <div class="config-block">
+            <div class="block-title">模式</div>
+            <a-radio-group v-model:value="tcpMode" size="small" button-style="solid" style="width:100%">
+              <a-radio-button value="client" style="width:50%;text-align:center">客户端</a-radio-button>
+              <a-radio-button value="server" style="width:50%;text-align:center">服务端</a-radio-button>
+            </a-radio-group>
+          </div>
+
+          <!-- 客户端配置 -->
+          <div class="config-block" v-if="tcpMode === 'client'">
+            <div class="block-title">连接配置</div>
+            <div class="form-row inline-row">
+              <label>主机</label>
+              <a-input v-model:value="tcpClientConfig.host" style="width:100px" placeholder="127.0.0.1" size="small" />
+            </div>
+            <div class="form-row inline-row">
+              <label>端口</label>
+              <a-input-number v-model:value="tcpClientConfig.port" :min="1" :max="65535" style="width:80px" size="small" />
+            </div>
+            <a-button
+              :type="tcpClientConnected ? 'default' : 'primary'"
+              :danger="tcpClientConnected"
+              @click="toggleTCPClient"
+              block size="small"
+            >
+              <span class="status-dot" :class="{ active: tcpClientConnected }"></span>
+              {{ tcpClientConnected ? '断开' : '连接' }}
+            </a-button>
+            <div v-if="tcpClientStatus" class="status-text">
+              本地: <span class="highlight">{{ tcpClientStatus.localAddr }}</span><br/>
+              远端: <span class="highlight">{{ tcpClientStatus.remoteAddr }}</span>
+            </div>
+          </div>
+
+          <!-- 服务端配置 -->
+          <div class="config-block" v-else>
+            <div class="block-title">监听配置</div>
+            <div class="form-row inline-row">
+              <label>地址</label>
+              <a-input v-model:value="tcpServerConfig.host" style="width:100px" placeholder="0.0.0.0" size="small" />
+            </div>
+            <div class="form-row inline-row">
+              <label>端口</label>
+              <a-input-number v-model:value="tcpServerConfig.port" :min="1" :max="65535" style="width:80px" size="small" />
+            </div>
+            <a-button
+              :type="tcpServerRunning ? 'default' : 'primary'"
+              :danger="tcpServerRunning"
+              @click="toggleTCPServer"
+              block size="small"
+            >
+              <span class="status-dot" :class="{ active: tcpServerRunning }"></span>
+              {{ tcpServerRunning ? '停止' : '启动' }}
+            </a-button>
+            <div v-if="tcpServerAddr" class="status-text">
+              监听: <span class="highlight">{{ tcpServerAddr }}</span>
+            </div>
+            <!-- 已连接客户端 -->
+            <div v-if="tcpServerClients.length" class="mt-2">
+              <div class="block-title">已连接 ({{ tcpServerClients.length }})</div>
+              <div v-for="c in tcpServerClients" :key="c.id" class="client-item">
+                <span class="status-dot active"></span>
+                <span style="font-size:10px">{{ c.remoteAddr }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 发送格式 -->
+          <div class="config-block">
+            <div class="block-title">格式</div>
+            <div class="form-row inline-row">
+              <label>发送</label>
+              <a-radio-group v-model:value="tcpSendFormat" size="small">
+                <a-radio-button value="text">ASC</a-radio-button>
+                <a-radio-button value="hex">HEX</a-radio-button>
+              </a-radio-group>
+            </div>
+            <div class="form-row inline-row">
+              <label>接收</label>
+              <a-radio-group v-model:value="tcpReceiveFormat" size="small">
+                <a-radio-button value="text">ASC</a-radio-button>
+                <a-radio-button value="hex">HEX</a-radio-button>
+              </a-radio-group>
+            </div>
+          </div>
+
+          <!-- 统计 -->
+          <div class="config-block stats-block">
+            <div class="block-title">统计</div>
+            <div class="stats-grid">
+              <div class="stat-item"><div class="stat-value send">{{ tcpSendCount }}</div><div class="stat-label">发送</div></div>
+              <div class="stat-item"><div class="stat-value receive">{{ tcpRecvCount }}</div><div class="stat-label">接收</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧数据区 -->
+        <div class="data-section">
+          <div class="send-area">
+            <div class="section-header">
+              <span class="section-title">发送</span>
+            </div>
+            <a-textarea v-model:value="tcpSendData" :rows="3" class="data-input"
+              :placeholder="tcpSendFormat === 'hex' ? '十六进制，如: 48656C6C6F' : '输入要发送的内容...'" />
+            <div class="send-footer">
+              <span class="byte-count">{{ tcpSendByteCount }} 字节</span>
+              <a-button type="primary" size="small" @click="sendTCPData"
+                :disabled="!tcpCanSend" :loading="tcpSending">发送</a-button>
+            </div>
+          </div>
+
+          <div class="receive-area">
+            <div class="section-header">
+              <span class="section-title">收发记录</span>
+              <a-button size="small" @click="tcpMessages = []">清空</a-button>
+            </div>
+            <div class="receive-output" ref="tcpOutputRef">
+              <div v-if="tcpMessages.length === 0" class="empty-hint">
+                {{ tcpMode === 'client' ? (tcpClientConnected ? '等待数据...' : '请先建立连接') : (tcpServerRunning ? '等待客户端连接...' : '请先启动服务端') }}
+              </div>
+              <div v-else class="message-list">
+                <div v-for="(msg, i) in tcpMessages" :key="i" class="message-item" :class="msg.type">
+                  <div class="message-header">
+                    <span class="message-direction">{{ msg.type === 'sent' ? '↑ 发送' : '↓ 接收' }}</span>
+                    <span class="message-time">{{ msg.time }}</span>
+                    <span v-if="msg.addr" class="message-addr">{{ msg.addr }}</span>
+                  </div>
+                  <div class="message-content">{{ tcpReceiveFormat === 'hex' ? msg.hexData : msg.data }}</div>
+                  <div class="message-meta">{{ msg.length }} 字节</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- WebSocket 调试面板 (预留) -->
+    <!-- WebSocket 调试面板 -->
     <div v-else-if="activeProtocol === 'websocket'" class="debug-panel">
-      <div class="coming-soon">
-        <ApiOutlined class="coming-icon" />
-        <span>{{ t('network.websocketComingSoon') }}</span>
+      <div class="panel-content">
+        <!-- 左侧配置 -->
+        <div class="config-section">
+          <div class="config-block">
+            <div class="block-title">连接</div>
+            <div class="form-row">
+              <label>URL</label>
+              <a-input v-model:value="wsUrl" placeholder="ws://127.0.0.1:8080/ws" size="small" />
+            </div>
+            <a-button
+              :type="wsConnected ? 'default' : 'primary'"
+              :danger="wsConnected"
+              @click="toggleWS"
+              block size="small"
+              style="margin-top:8px"
+            >
+              <span class="status-dot" :class="{ active: wsConnected }"></span>
+              {{ wsConnected ? '断开' : '连接' }}
+            </a-button>
+          </div>
+
+          <div class="config-block">
+            <div class="block-title">发送格式</div>
+            <a-radio-group v-model:value="wsSendFormat" size="small" style="width:100%">
+              <a-radio-button value="text" style="width:50%;text-align:center">文本</a-radio-button>
+              <a-radio-button value="binary" style="width:50%;text-align:center">二进制</a-radio-button>
+            </a-radio-group>
+          </div>
+
+          <div class="config-block stats-block">
+            <div class="block-title">统计</div>
+            <div class="stats-grid">
+              <div class="stat-item"><div class="stat-value send">{{ wsSendCount }}</div><div class="stat-label">发送</div></div>
+              <div class="stat-item"><div class="stat-value receive">{{ wsRecvCount }}</div><div class="stat-label">接收</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧数据区 -->
+        <div class="data-section">
+          <div class="send-area">
+            <div class="section-header">
+              <span class="section-title">发送</span>
+            </div>
+            <a-textarea v-model:value="wsSendData" :rows="3" class="data-input"
+              :placeholder="wsSendFormat === 'binary' ? '十六进制，如: 48656C6C6F' : '输入要发送的内容...'" />
+            <div class="send-footer">
+              <span class="byte-count">{{ wsSendByteCount }} 字节</span>
+              <a-button type="primary" size="small" @click="sendWSData"
+                :disabled="!wsCanSend" :loading="wsSending">发送</a-button>
+            </div>
+          </div>
+
+          <div class="receive-area">
+            <div class="section-header">
+              <span class="section-title">收发记录</span>
+              <a-button size="small" @click="wsMessages = []">清空</a-button>
+            </div>
+            <div class="receive-output" ref="wsOutputRef">
+              <div v-if="wsMessages.length === 0" class="empty-hint">
+                {{ wsConnected ? '等待消息...' : '请先建立连接' }}
+              </div>
+              <div v-else class="message-list">
+                <div v-for="(msg, i) in wsMessages" :key="i" class="message-item" :class="msg.type">
+                  <div class="message-header">
+                    <span class="message-direction">{{ msg.type === 'sent' ? '↑ 发送' : '↓ 接收' }}</span>
+                    <span class="message-time">{{ msg.time }}</span>
+                    <span class="message-addr">{{ msg.isText ? 'Text' : 'Binary' }}</span>
+                  </div>
+                  <div class="message-content">{{ msg.data }}</div>
+                  <div class="message-meta">{{ msg.length }} 字节</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -205,6 +413,7 @@ import { useI18n } from 'vue-i18n'
 import { ApiOutlined, WifiOutlined, CloudOutlined } from '@ant-design/icons-vue'
 import { Events } from '@wailsio/runtime'
 import { TCPUDPService, type ConnectionStatus, type MessageResult } from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/network'
+import { WebSocketService } from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/network'
 
 const { t } = useI18n()
 
@@ -392,6 +601,181 @@ function clearMessages() {
   receiveBytes.value = 0
 }
 
+// ─── TCP ────────────────────────────────────────────────────────
+const tcpMode = ref<'client' | 'server'>('client')
+const tcpClientConfig = reactive({ host: '127.0.0.1', port: 8080 })
+const tcpServerConfig = reactive({ host: '0.0.0.0', port: 9090 })
+const tcpClientConnected = ref(false)
+const tcpClientStatus = ref<any>(null)
+const tcpServerRunning = ref(false)
+const tcpServerAddr = ref('')
+const tcpServerClients = ref<any[]>([])
+const tcpSendFormat = ref<'text' | 'hex'>('text')
+const tcpReceiveFormat = ref<'text' | 'hex'>('text')
+const tcpSendData = ref('')
+const tcpSending = ref(false)
+const tcpSendCount = ref(0)
+const tcpRecvCount = ref(0)
+const tcpMessages = ref<any[]>([])
+const tcpOutputRef = ref<HTMLElement | null>(null)
+
+const tcpSendByteCount = computed(() => {
+  if (!tcpSendData.value) return 0
+  if (tcpSendFormat.value === 'hex') return Math.floor(tcpSendData.value.replace(/\s/g, '').length / 2)
+  return new TextEncoder().encode(tcpSendData.value).length
+})
+
+const tcpCanSend = computed(() =>
+  tcpSendData.value.trim() !== '' && (tcpClientConnected.value || tcpServerRunning.value)
+)
+
+function addTCPMessage(msg: any) {
+  tcpMessages.value.push(msg)
+  nextTick(() => { if (tcpOutputRef.value) tcpOutputRef.value.scrollTop = tcpOutputRef.value.scrollHeight })
+}
+
+async function toggleTCPClient() {
+  if (tcpClientConnected.value) {
+    await TCPUDPService.StopTCPClient()
+    tcpClientConnected.value = false
+    tcpClientStatus.value = null
+  } else {
+    try {
+      const status = await TCPUDPService.StartTCPClient(tcpClientConfig.host, tcpClientConfig.port, 10)
+      if (status?.isConnected) {
+        tcpClientConnected.value = true
+        tcpClientStatus.value = status
+        message.success('连接成功')
+      } else {
+        message.error('连接失败')
+      }
+    } catch (e: any) { message.error('连接失败: ' + e.message) }
+  }
+}
+
+async function toggleTCPServer() {
+  if (tcpServerRunning.value) {
+    await TCPUDPService.StopTCPServer()
+    tcpServerRunning.value = false
+    tcpServerAddr.value = ''
+    tcpServerClients.value = []
+  } else {
+    try {
+      const status = await TCPUDPService.StartTCPServer(tcpServerConfig.host, tcpServerConfig.port)
+      if (status?.isConnected) {
+        tcpServerRunning.value = true
+        tcpServerAddr.value = status.localAddr
+        message.success('服务端已启动: ' + status.localAddr)
+      } else {
+        message.error('启动失败')
+      }
+    } catch (e: any) { message.error('启动失败: ' + e.message) }
+  }
+}
+
+async function sendTCPData() {
+  if (!tcpSendData.value.trim()) return
+  tcpSending.value = true
+  try {
+    const isHex = tcpSendFormat.value === 'hex'
+    let result: any
+    if (tcpMode.value === 'client') {
+      result = await TCPUDPService.SendTCPClient(tcpSendData.value, isHex)
+    } else {
+      result = await TCPUDPService.SendTCPServerToClient('', tcpSendData.value, isHex)
+    }
+    if (result?.success) {
+      addTCPMessage({ type: 'sent', data: result.data, hexData: result.hexData, length: result.length, time: new Date().toLocaleTimeString() })
+      tcpSendCount.value++
+    } else {
+      message.error(result?.message || '发送失败')
+    }
+  } catch (e: any) { message.error('发送失败: ' + e.message) }
+  finally { tcpSending.value = false }
+}
+
+function handleTCPClientReceived(event: any) {
+  const d = event?.data
+  if (!d) return
+  addTCPMessage({ type: 'received', data: d.data, hexData: d.hexData, length: d.length, time: d.time })
+  tcpRecvCount.value++
+}
+
+function handleTCPServerReceived(event: any) {
+  const d = event?.data
+  if (!d) return
+  addTCPMessage({ type: 'received', data: d.data, hexData: d.hexData, length: d.length, time: d.time, addr: d.remoteAddr })
+  tcpRecvCount.value++
+}
+
+// ─── WebSocket ───────────────────────────────────────────────────
+const wsUrl = ref('ws://127.0.0.1:8080/ws')
+const wsConnected = ref(false)
+const wsSendFormat = ref<'text' | 'binary'>('text')
+const wsSendData = ref('')
+const wsSending = ref(false)
+const wsSendCount = ref(0)
+const wsRecvCount = ref(0)
+const wsMessages = ref<any[]>([])
+const wsOutputRef = ref<HTMLElement | null>(null)
+
+const wsSendByteCount = computed(() => {
+  if (!wsSendData.value) return 0
+  if (wsSendFormat.value === 'binary') return Math.floor(wsSendData.value.replace(/\s/g, '').length / 2)
+  return new TextEncoder().encode(wsSendData.value).length
+})
+
+const wsCanSend = computed(() => wsConnected.value && wsSendData.value.trim() !== '')
+
+function addWSMessage(msg: any) {
+  wsMessages.value.push(msg)
+  nextTick(() => { if (wsOutputRef.value) wsOutputRef.value.scrollTop = wsOutputRef.value.scrollHeight })
+}
+
+async function toggleWS() {
+  if (wsConnected.value) {
+    await WebSocketService.Disconnect()
+    wsConnected.value = false
+  } else {
+    try {
+      const status = await WebSocketService.Connect(wsUrl.value)
+      if (status?.isConnected) {
+        wsConnected.value = true
+        message.success('WebSocket 连接成功')
+      } else {
+        message.error('连接失败')
+      }
+    } catch (e: any) { message.error('连接失败: ' + e.message) }
+  }
+}
+
+async function sendWSData() {
+  if (!wsSendData.value.trim()) return
+  wsSending.value = true
+  try {
+    let result: any
+    if (wsSendFormat.value === 'binary') {
+      result = await WebSocketService.SendBinary(wsSendData.value)
+    } else {
+      result = await WebSocketService.SendText(wsSendData.value)
+    }
+    if (result?.success) {
+      addWSMessage({ type: 'sent', data: result.data, length: result.length, time: new Date().toLocaleTimeString(), isText: wsSendFormat.value === 'text' })
+      wsSendCount.value++
+    } else {
+      message.error(result?.message || '发送失败')
+    }
+  } catch (e: any) { message.error('发送失败: ' + e.message) }
+  finally { wsSending.value = false }
+}
+
+function handleWSReceived(event: any) {
+  const d = event?.data
+  if (!d) return
+  addWSMessage({ type: 'received', data: d.isText ? d.data : d.hexData, length: d.length, time: d.time, isText: d.isText })
+  wsRecvCount.value++
+}
+
 // 周期发送控制
 watch(periodicSend, (enabled) => {
   if (enabled) {
@@ -411,14 +795,39 @@ watch(periodicSend, (enabled) => {
 // 组件挂载时注册事件监听
 onMounted(() => {
   Events.On('network:udpReceived', handleUDPReceived)
+  Events.On('network:tcpClientReceived', handleTCPClientReceived)
+  Events.On('network:tcpClientDisconnectedSelf', () => {
+    tcpClientConnected.value = false
+    tcpClientStatus.value = null
+    message.warning('TCP 连接已断开')
+  })
+  Events.On('network:tcpServerReceived', handleTCPServerReceived)
+  Events.On('network:tcpClientConnected', (event: any) => {
+    const info = event?.data
+    if (info) tcpServerClients.value.push(info)
+  })
+  Events.On('network:tcpClientDisconnected', (event: any) => {
+    const id = event?.data
+    tcpServerClients.value = tcpServerClients.value.filter((c: any) => c.id !== id)
+  })
+  Events.On('network:wsReceived', handleWSReceived)
+  Events.On('network:wsDisconnected', () => {
+    wsConnected.value = false
+    message.warning('WebSocket 连接已断开')
+  })
 })
 
 // 组件卸载时取消事件监听
 onUnmounted(() => {
   Events.Off('network:udpReceived')
-  if (periodicTimer) {
-    clearInterval(periodicTimer)
-  }
+  Events.Off('network:tcpClientReceived')
+  Events.Off('network:tcpClientDisconnectedSelf')
+  Events.Off('network:tcpServerReceived')
+  Events.Off('network:tcpClientConnected')
+  Events.Off('network:tcpClientDisconnected')
+  Events.Off('network:wsReceived')
+  Events.Off('network:wsDisconnected')
+  if (periodicTimer) clearInterval(periodicTimer)
 })
 </script>
 
@@ -818,6 +1227,15 @@ onUnmounted(() => {
 
 .coming-icon {
   font-size: 48px;
+}
+
+.client-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 10px;
+  color: #555;
 }
 
 /* 深色模式适配 */

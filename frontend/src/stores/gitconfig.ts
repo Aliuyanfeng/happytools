@@ -13,6 +13,11 @@ import {
   GetQuickPanel,
   SaveQuickPanel,
   GetRemoteNames,
+  LoadGlobalConfig,
+  SaveGlobalEntry,
+  DeleteGlobalEntry,
+  AddGlobalSection,
+  DeleteGlobalSection,
 } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/gitconfig/gitconfigservice.js'
 
 export interface Repository {
@@ -51,6 +56,9 @@ export interface QuickPanelItem {
   order: number
 }
 
+// 全局配置的特殊 ID
+export const GLOBAL_REPO_ID = '__global__'
+
 export const useGitConfigStore = defineStore('gitconfig', () => {
   const repos = ref<Repository[]>([])
   const activeRepoID = ref<string | null>(null)
@@ -61,6 +69,7 @@ export const useGitConfigStore = defineStore('gitconfig', () => {
   const searchKeyword = ref('')
   const loading = ref(false)
 
+  const isGlobal = computed(() => activeRepoID.value === GLOBAL_REPO_ID)
   const activeRepo = computed(() => repos.value.find(r => r.id === activeRepoID.value) ?? null)
 
   const filteredSections = computed(() => {
@@ -83,14 +92,25 @@ export const useGitConfigStore = defineStore('gitconfig', () => {
 
   async function selectRepo(id: string) {
     activeRepoID.value = id
-    await Promise.all([loadConfig(id), loadQuickPanel(id), loadRemoteNames(id)])
+    if (id === GLOBAL_REPO_ID) {
+      quickPanel.value = []
+      remoteNames.value = []
+      await loadConfig(id)
+    } else {
+      await Promise.all([loadConfig(id), loadQuickPanel(id), loadRemoteNames(id)])
+    }
   }
 
   async function loadConfig(repoID: string) {
     loading.value = true
     try {
-      const result = await LoadConfig(repoID)
-      sections.value = (result ?? []) as ConfigSection[]
+      if (repoID === GLOBAL_REPO_ID) {
+        const result = await LoadGlobalConfig()
+        sections.value = (result ?? []) as ConfigSection[]
+      } else {
+        const result = await LoadConfig(repoID)
+        sections.value = (result ?? []) as ConfigSection[]
+      }
     } finally {
       loading.value = false
     }
@@ -116,25 +136,41 @@ export const useGitConfigStore = defineStore('gitconfig', () => {
 
   async function saveEntry(section: string, subKey: string, key: string, value: string) {
     if (!activeRepoID.value) return
-    await SaveEntry(activeRepoID.value, section, subKey, key, value)
+    if (activeRepoID.value === GLOBAL_REPO_ID) {
+      await SaveGlobalEntry(section, subKey, key, value)
+    } else {
+      await SaveEntry(activeRepoID.value, section, subKey, key, value)
+    }
     await loadConfig(activeRepoID.value)
   }
 
   async function deleteEntry(section: string, subKey: string, key: string) {
     if (!activeRepoID.value) return
-    await DeleteEntry(activeRepoID.value, section, subKey, key)
+    if (activeRepoID.value === GLOBAL_REPO_ID) {
+      await DeleteGlobalEntry(section, subKey, key)
+    } else {
+      await DeleteEntry(activeRepoID.value, section, subKey, key)
+    }
     await loadConfig(activeRepoID.value)
   }
 
   async function addSection(section: string, subKey: string) {
     if (!activeRepoID.value) return
-    await AddSection(activeRepoID.value, section, subKey)
+    if (activeRepoID.value === GLOBAL_REPO_ID) {
+      await AddGlobalSection(section, subKey)
+    } else {
+      await AddSection(activeRepoID.value, section, subKey)
+    }
     await loadConfig(activeRepoID.value)
   }
 
   async function deleteSection(section: string, subKey: string) {
     if (!activeRepoID.value) return
-    await DeleteSection(activeRepoID.value, section, subKey)
+    if (activeRepoID.value === GLOBAL_REPO_ID) {
+      await DeleteGlobalSection(section, subKey)
+    } else {
+      await DeleteSection(activeRepoID.value, section, subKey)
+    }
     await loadConfig(activeRepoID.value)
   }
 
@@ -160,11 +196,19 @@ export const useGitConfigStore = defineStore('gitconfig', () => {
     knownKeys.value = (result ?? []) as KnownKey[]
   }
 
+  function closeConfig() {
+    activeRepoID.value = null
+    sections.value = []
+    quickPanel.value = []
+    remoteNames.value = []
+  }
+
   return {
-    repos, activeRepoID, activeRepo, sections, quickPanel, knownKeys,
+    repos, activeRepoID, activeRepo, isGlobal, sections, quickPanel, knownKeys,
     remoteNames, searchKeyword, loading, filteredSections,
     loadRepos, selectRepo, loadConfig, addRepo, deleteRepo,
     saveEntry, deleteEntry, addSection, deleteSection,
     loadQuickPanel, saveQuickPanel, loadKnownKeys, loadRemoteNames,
+    closeConfig,
   }
 })

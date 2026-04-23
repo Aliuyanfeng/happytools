@@ -183,7 +183,13 @@ function cancelEdit() {
 }
 
 async function commitEdit(entry: ConfigEntry) {
+  // 值未变化，直接取消
   if (editingValue.value === entry.value) {
+    cancelEdit()
+    return
+  }
+  // 新值为空且原值也为空（误点击），不写入
+  if (editingValue.value.trim() === '' && entry.value === '') {
     cancelEdit()
     return
   }

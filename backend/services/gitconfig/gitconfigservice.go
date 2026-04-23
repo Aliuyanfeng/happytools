@@ -257,6 +257,130 @@ func (s *GitConfigService) GetRemoteNames(repoID string) ([]string, error) {
 	return remotes, nil
 }
 
+// ========== 全局 Git 配置 (~/.gitconfig) ==========
+
+// globalConfigPath 返回全局 git config 路径
+func globalConfigPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("获取用户目录失败: %w", err)
+	}
+	return filepath.Join(home, ".gitconfig"), nil
+}
+
+func (s *GitConfigService) readGlobalConfig() ([]ConfigSection, error) {
+	p, err := globalConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(p)
+	if os.IsNotExist(err) {
+		return []ConfigSection{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("读取全局配置失败: %w", err)
+	}
+	return Parse(string(data))
+}
+
+func (s *GitConfigService) writeGlobalConfig(sections []ConfigSection) error {
+	p, err := globalConfigPath()
+	if err != nil {
+		return err
+	}
+	content := Serialize(sections)
+	tmp := p + ".tmp"
+	if err := os.WriteFile(tmp, []byte(content), 0644); err != nil {
+		return fmt.Errorf("写入临时文件失败: %w", err)
+	}
+	if err := os.Rename(tmp, p); err != nil {
+		os.Remove(tmp)
+		return fmt.Errorf("替换配置文件失败: %w", err)
+	}
+	return nil
+}
+
+// LoadGlobalConfig 读取全局 ~/.gitconfig
+func (s *GitConfigService) LoadGlobalConfig() ([]ConfigSection, error) {
+	return s.readGlobalConfig()
+}
+
+// SaveGlobalEntry 新增或修改全局配置键值
+func (s *GitConfigService) SaveGlobalEntry(section, subKey, key, value string) error {
+	if key == "" {
+		return fmt.Errorf("键名不能为空")
+	}
+	sections, err := s.readGlobalConfig()
+	if err != nil {
+		return err
+	}
+	secIdx := findSection(sections, section, subKey)
+	if secIdx == -1 {
+		sections = append(sections, ConfigSection{
+			Name:    section,
+			SubKey:  subKey,
+			Entries: []ConfigEntry{{Key: key, Value: value}},
+		})
+	} else {
+		entryIdx := findEntry(sections[secIdx].Entries, key)
+		if entryIdx == -1 {
+			sections[secIdx].Entries = append(sections[secIdx].Entries, ConfigEntry{Key: key, Value: value})
+		} else {
+			sections[secIdx].Entries[entryIdx].Value = value
+		}
+	}
+	return s.writeGlobalConfig(sections)
+}
+
+// DeleteGlobalEntry 删除全局配置键
+func (s *GitConfigService) DeleteGlobalEntry(section, subKey, key string) error {
+	sections, err := s.readGlobalConfig()
+	if err != nil {
+		return err
+	}
+	secIdx := findSection(sections, section, subKey)
+	if secIdx == -1 {
+		return fmt.Errorf("节 [%s] 不存在", section)
+	}
+	entryIdx := findEntry(sections[secIdx].Entries, key)
+	if entryIdx == -1 {
+		return fmt.Errorf("键 %s 不存在", key)
+	}
+	entries := sections[secIdx].Entries
+	sections[secIdx].Entries = append(entries[:entryIdx], entries[entryIdx+1:]...)
+	return s.writeGlobalConfig(sections)
+}
+
+// AddGlobalSection 新增全局配置节
+func (s *GitConfigService) AddGlobalSection(section, subKey string) error {
+	if section == "" {
+		return fmt.Errorf("节名称不能为空")
+	}
+	sections, err := s.readGlobalConfig()
+	if err != nil {
+		return err
+	}
+	if findSection(sections, section, subKey) != -1 {
+		return fmt.Errorf("节名称已存在")
+	}
+	sections = append(sections, ConfigSection{Name: section, SubKey: subKey, Entries: []ConfigEntry{}})
+	return s.writeGlobalConfig(sections)
+}
+
+// DeleteGlobalSection 删除全局配置节
+func (s *GitConfigService) DeleteGlobalSection(section, subKey string) error {
+	sections, err := s.readGlobalConfig()
+	if err != nil {
+		return err
+	}
+	secIdx := findSection(sections, section, subKey)
+	if secIdx == -1 {
+		return fmt.Errorf("节 [%s] 不存在", section)
+	}
+	sections = append(sections[:secIdx], sections[secIdx+1:]...)
+	return s.writeGlobalConfig(sections)
+}
+
 // ========== 内部工具方法 ==========
 
 func (s *GitConfigService) readConfig(repoPath string) ([]ConfigSection, error) {

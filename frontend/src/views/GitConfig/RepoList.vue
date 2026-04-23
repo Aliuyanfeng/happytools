@@ -7,6 +7,19 @@
       </a-button>
     </div>
 
+    <!-- 全局配置入口 -->
+    <div
+      class="repo-item global-item"
+      :class="{ active: store.activeRepoID === GLOBAL_ID }"
+      @click="store.selectRepo(GLOBAL_ID)"
+    >
+      <div class="repo-icon">🌐</div>
+      <div class="repo-info">
+        <div class="repo-name">全局配置</div>
+        <div class="repo-path">~/.gitconfig</div>
+      </div>
+    </div>
+
     <!-- 平台筛选 -->
     <div class="platform-filter">
       <a-tag
@@ -101,6 +114,7 @@ import { OpenDirectoryDialog } from '../../../bindings/github.com/Aliuyanfeng/ha
 
 const { t } = useI18n()
 const store = useGitConfigStore()
+const GLOBAL_ID = '__global__'
 
 const addModalVisible = ref(false)
 const adding = ref(false)
@@ -196,6 +210,16 @@ function resetForm() {
   flex-wrap: wrap;
   gap: 4px;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.global-item {
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 2px;
+}
+
+.global-item .repo-name {
+  color: #1890ff;
+  font-weight: 600;
 }
 
 .filter-tag { cursor: pointer; margin: 0; }

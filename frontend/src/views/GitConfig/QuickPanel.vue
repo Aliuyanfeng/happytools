@@ -142,6 +142,17 @@ function startQuickEdit(item: QuickPanelItem, index: number) {
 }
 
 async function commitQuickEdit(item: QuickPanelItem) {
+  const original = currentValue(item)
+  // 值未变化，直接取消
+  if (editingValue.value === original) {
+    editingIndex.value = -1
+    return
+  }
+  // 新值为空且原值也为空（误点击），不写入
+  if (editingValue.value.trim() === '' && original === '') {
+    editingIndex.value = -1
+    return
+  }
   try {
     await store.saveEntry(item.section, item.subKey, item.key, editingValue.value)
   } catch (e: any) {

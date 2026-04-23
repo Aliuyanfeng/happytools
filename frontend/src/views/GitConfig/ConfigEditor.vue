@@ -10,10 +10,16 @@
       <!-- 工具栏 -->
       <div class="editor-toolbar">
         <div class="repo-meta">
-          <a-tag :color="platformColor(store.activeRepo?.platform)">
-            {{ store.activeRepo?.platform?.toUpperCase() }}
-          </a-tag>
-          <span class="repo-path-text">{{ store.activeRepo?.path }}</span>
+          <template v-if="store.isGlobal">
+            <a-tag color="blue">GLOBAL</a-tag>
+            <span class="repo-path-text">~/.gitconfig</span>
+          </template>
+          <template v-else>
+            <a-tag :color="platformColor(store.activeRepo?.platform)">
+              {{ store.activeRepo?.platform?.toUpperCase() }}
+            </a-tag>
+            <span class="repo-path-text">{{ store.activeRepo?.path }}</span>
+          </template>
         </div>
         <div class="toolbar-right">
           <a-input
@@ -24,6 +30,16 @@
           >
             <template #prefix><SearchOutlined /></template>
           </a-input>
+          <a-tooltip title="关闭当前配置">
+            <a-button @click.stop="handleClose">
+              <template #icon><CloseOutlined /></template>
+            </a-button>
+          </a-tooltip>
+          <a-tooltip title="重新加载配置文件">
+            <a-button @click="handleRefresh" :loading="store.loading">
+              <template #icon><ReloadOutlined /></template>
+            </a-button>
+          </a-tooltip>
           <a-button type="primary" ghost @click="addSectionModal = true">
             <template #icon><PlusOutlined /></template>
             {{ t('gitConfig.addSection') }}
@@ -31,9 +47,9 @@
         </div>
       </div>
 
-      <!-- QuickPanel -->
+      <!-- QuickPanel 仅仓库模式显示 -->
       <div class="editor-body">
-        <QuickPanel />
+        <QuickPanel v-if="!store.isGlobal" />
 
         <!-- Section 列表 -->
         <a-spin :spinning="store.loading">
@@ -71,7 +87,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PlusOutlined, SearchOutlined, BranchesOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, SearchOutlined, BranchesOutlined, ReloadOutlined, CloseOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useGitConfigStore } from '@/stores/gitconfig'
 import QuickPanel from './QuickPanel.vue'
@@ -88,6 +104,19 @@ function platformColor(platform?: string): string {
     github: 'default', gitlab: 'orange', gitee: 'red', custom: 'purple',
   }
   return colors[platform ?? ''] ?? 'default'
+}
+
+async function handleRefresh() {
+  if (!store.activeRepoID) return
+  await store.loadConfig(store.activeRepoID)
+  message.success('已刷新')
+}
+
+function handleClose() {
+  store.activeRepoID = null
+  store.sections = []
+  store.quickPanel = []
+  store.remoteNames = []
 }
 
 async function handleAddSection() {

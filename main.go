@@ -117,6 +117,7 @@ func main() {
 	app.RegisterService(application.NewService(network.NewFileTransferService(app)))
 	app.RegisterService(application.NewService(network.NewTCPUDPService(app)))
 	app.RegisterService(application.NewService(network.NewDNSService()))
+	app.RegisterService(application.NewService(network.NewWebSocketService(app)))
 	app.RegisterService(application.NewService(unitconverter.NewUnitConverterService()))
 	app.RegisterService(application.NewService(encryption.NewEncryptionService()))
 	app.RegisterService(application.NewService(clipboard.NewClipboardService(app)))

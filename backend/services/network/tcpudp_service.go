@@ -45,12 +45,19 @@ type ConnectionStatus struct {
 type TCPUDPService struct {
 	app            *application.App
 	tcpConn        net.Conn
-	udpClientConn  *net.UDPConn // UDP客户端连接
-	udpServerConn  *net.UDPConn // UDP服务端连接
+	udpClientConn  *net.UDPConn
+	udpServerConn  *net.UDPConn
 	mu             sync.Mutex
 	isRunning      bool
-	serverRunning  bool          // UDP服务端是否运行
-	stopListenChan chan struct{} // 停止监听通道
+	serverRunning  bool
+	stopListenChan chan struct{}
+	// TCP 服务端
+	tcpListener      net.Listener
+	tcpListenerAddr  string
+	tcpServerClients map[string]*tcpServerClient
+	tcpServerStop    chan struct{}
+	// TCP 客户端后台接收
+	tcpClientStop chan struct{}
 }
 
 // NewTCPUDPService 创建TCP/UDP服务实例
