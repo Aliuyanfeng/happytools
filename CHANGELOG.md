@@ -1,4 +1,19 @@
 
+<a name="v1.1.3"></a>
+## [v1.1.3](https://github.com/Aliuyanfeng/happytools/compare/v1.1.2...v1.1.3)
+
+> 2026-04-23
+
+### Features
+
+* 新增tcp调试、修复git文件空值问题
+* 新增文件校验和功能
+
+### Update
+
+* 更新版本号
+
+
 <a name="v1.1.2"></a>
 ## [v1.1.2](https://github.com/Aliuyanfeng/happytools/compare/v1.1.1...v1.1.2)
 
@@ -7,10 +22,14 @@
 ### Build
 
 * update v1.1.2
+* update v1.1.2
 
 ### Chore
 
 * 更新版本标识
+* 整理项目结构
+* 整理项目结构
+* 整理项目结构
 * 整理项目结构
 
 ### Features
