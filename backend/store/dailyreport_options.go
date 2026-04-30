@@ -476,3 +476,79 @@ func GetMonthlyTagStats() ([]MonthStat, error) {
 
 	return result, nil
 }
+
+// GetMonthTagStats 查询指定月份（YYYY-MM）的标签工时统计
+func GetMonthTagStats(month string) (*MonthStat, error) {
+	tagDays := make(map[string]float64)
+	untaggedDates := make([]string, 0)
+	totalDays := 0
+
+	err := DB.View(func(tx *bbolt.Tx) error {
+		allRatios := getAllTagRatios(tx)
+
+		b := tx.Bucket(dailyReportBucket)
+		if b == nil {
+			return nil
+		}
+		return b.ForEach(func(k, v []byte) error {
+			var r DailyReport
+			if err := json.Unmarshal(v, &r); err != nil {
+				return nil
+			}
+			if len(r.Date) < 7 || r.Date[:7] != month {
+				return nil
+			}
+			totalDays++
+
+			validTags := make([]string, 0, len(r.Tags))
+			for _, t := range r.Tags {
+				if t != "" {
+					validTags = append(validTags, t)
+				}
+			}
+
+			if len(validTags) == 0 {
+				untaggedDates = append(untaggedDates, r.Date)
+				return nil
+			}
+
+			ratios, hasCustom := allRatios[r.Date]
+			for _, tag := range validTags {
+				var ratio float64
+				if hasCustom {
+					if rv, ok := ratios[tag]; ok {
+						ratio = rv
+					} else {
+						ratio = 1.0 / float64(len(validTags))
+					}
+				} else {
+					ratio = 1.0 / float64(len(validTags))
+				}
+				tagDays[tag] += ratio
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	tagStats := make([]MonthTagStat, 0, len(tagDays))
+	for tag, days := range tagDays {
+		tagStats = append(tagStats, MonthTagStat{Tag: tag, Days: days})
+	}
+	sort.Slice(tagStats, func(i, j int) bool {
+		if tagStats[i].Days != tagStats[j].Days {
+			return tagStats[i].Days > tagStats[j].Days
+		}
+		return tagStats[i].Tag < tagStats[j].Tag
+	})
+	sort.Strings(untaggedDates)
+
+	return &MonthStat{
+		Month:         month,
+		TagStats:      tagStats,
+		UntaggedDates: untaggedDates,
+		TotalDays:     totalDays,
+	}, nil
+}

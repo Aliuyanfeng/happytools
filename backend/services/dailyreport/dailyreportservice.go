@@ -186,3 +186,21 @@ func (d *DailyReportService) GetTagRatios(date string) (map[string]float64, erro
 	}
 	return ratios, nil
 }
+
+// GetMonthTagStats 获取指定月份（YYYY-MM）的标签工时统计
+func (d *DailyReportService) GetMonthTagStats(month string) (*MonthStat, error) {
+	ms, err := store.GetMonthTagStats(month)
+	if err != nil {
+		return nil, err
+	}
+	tagStats := make([]MonthTagStat, len(ms.TagStats))
+	for i, ts := range ms.TagStats {
+		tagStats[i] = MonthTagStat{Tag: ts.Tag, Days: ts.Days}
+	}
+	return &MonthStat{
+		Month:         ms.Month,
+		TagStats:      tagStats,
+		UntaggedDates: ms.UntaggedDates,
+		TotalDays:     ms.TotalDays,
+	}, nil
+}

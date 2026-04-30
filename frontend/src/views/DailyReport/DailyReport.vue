@@ -26,7 +26,7 @@
             </a-button>
             <a-button @click="handleOpenTagStats" size="large">
               <BarChartOutlined />
-              工时统计
+              月度工时统计
             </a-button>
           </a-space>
         </a-col>
@@ -216,36 +216,44 @@
         </a-form-item>
       </a-form>
     </a-modal>
-    <!-- 工时统计弹窗 -->
+    <!-- 月度工时统计弹窗 -->
     <a-modal
       v-model:open="tagStatsVisible"
-      title="工时统计 · 标签分布"
+      title="月度工时统计 · 标签分布"
       width="800px"
       :footer="null"
       :bodyStyle="{ padding: '16px 24px 24px', maxHeight: '75vh', overflowY: 'auto' }"
     >
+      <!-- 月份选择器 -->
+      <div class="stats-month-picker">
+        <a-month-picker
+          v-model:value="statsMonth"
+          format="YYYY-MM"
+          valueFormat="YYYY-MM"
+          :allow-clear="false"
+          @change="handleStatsMonthChange"
+          style="width: 160px"
+        />
+      </div>
+
       <div v-if="tagStatsLoading" class="stats-loading">
         <a-spin tip="加载中..." />
       </div>
-      <div v-else-if="monthlyTagStats.length === 0" class="stats-empty">
-        <a-empty description="暂无日报数据" />
+      <div v-else-if="!currentMonthStat || currentMonthStat.total_days === 0" class="stats-empty">
+        <a-empty description="本月暂无日报数据" />
       </div>
       <div v-else class="stats-content">
-        <div
-          v-for="ms in monthlyTagStats"
-          :key="ms.month"
-          class="month-stat-block"
-        >
+        <div class="month-stat-block">
           <!-- 月份标题 -->
           <div class="month-stat-header">
-            <span class="month-stat-title">{{ ms.month }}</span>
-            <span class="month-stat-total">共 {{ ms.total_days }} 天日报</span>
+            <span class="month-stat-title">{{ currentMonthStat.month }}</span>
+            <span class="month-stat-total">共 {{ currentMonthStat.total_days }} 天日报</span>
           </div>
 
           <!-- 标签统计 -->
-          <div v-if="ms.tag_stats && ms.tag_stats.length" class="tag-stat-list">
+          <div v-if="currentMonthStat.tag_stats && currentMonthStat.tag_stats.length" class="tag-stat-list">
             <div
-              v-for="ts in ms.tag_stats"
+              v-for="ts in currentMonthStat.tag_stats"
               :key="ts.tag"
               class="tag-stat-row"
             >
@@ -255,7 +263,7 @@
               <div class="tag-stat-bar-wrap">
                 <div
                   class="tag-stat-bar"
-                  :style="{ width: getBarWidth(ts.days, ms.total_days), backgroundColor: getTagColorHex(ts.tag) }"
+                  :style="{ width: getBarWidth(ts.days, currentMonthStat.total_days), backgroundColor: getTagColorHex(ts.tag) }"
                 ></div>
               </div>
               <span class="tag-stat-days">{{ formatDays(ts.days) }} 天</span>
@@ -264,36 +272,36 @@
           <div v-else class="no-tags-hint">本月所有日报均未打标签</div>
 
           <!-- 多标签天的工时比例编辑器 -->
-          <div v-if="ms.multi_tag_dates && ms.multi_tag_dates.length" class="multi-tag-section">
+          <div v-if="currentMonthStat.multi_tag_dates && currentMonthStat.multi_tag_dates.length" class="multi-tag-section">
             <div
               class="multi-tag-section-title"
-              @click="toggleMultiTagExpand(ms.month)"
+              @click="toggleMultiTagExpand(currentMonthStat.month)"
             >
               <SlidersOutlined class="multi-tag-icon" />
-              本月有 {{ ms.multi_tag_dates.length }} 天包含多个标签，点击调整工时占比
-              <DownOutlined :class="['expand-arrow', { expanded: expandedMonths.has(ms.month) }]" />
+              本月有 {{ currentMonthStat.multi_tag_dates.length }} 天包含多个标签，点击调整工时占比
+              <DownOutlined :class="['expand-arrow', { expanded: expandedMonths.has(currentMonthStat.month) }]" />
             </div>
-            <div v-if="expandedMonths.has(ms.month)" class="multi-tag-editors">
+            <div v-if="expandedMonths.has(currentMonthStat.month)" class="multi-tag-editors">
               <TagRatioEditor
-                v-for="item in ms.multi_tag_dates"
+                v-for="item in currentMonthStat.multi_tag_dates"
                 :key="item.date"
                 :date="item.date"
                 :tags="item.tags"
                 :saved-ratios="item.savedRatios"
-                @saved="handleRatioSaved(ms.month)"
+                @saved="handleRatioSaved(currentMonthStat.month)"
               />
             </div>
           </div>
 
           <!-- 未打标签日期 -->
-          <div v-if="ms.untagged_dates && ms.untagged_dates.length" class="untagged-section">
+          <div v-if="currentMonthStat.untagged_dates && currentMonthStat.untagged_dates.length" class="untagged-section">
             <div class="untagged-title">
               <ExclamationCircleOutlined class="untagged-icon" />
-              未打标签日期（{{ ms.untagged_dates.length }} 天）
+              未打标签日期（{{ currentMonthStat.untagged_dates.length }} 天）
             </div>
             <div class="untagged-dates">
               <a-tag
-                v-for="d in ms.untagged_dates"
+                v-for="d in currentMonthStat.untagged_dates"
                 :key="d"
                 class="untagged-date-tag"
                 @click="handleClickUntaggedDate(d)"
@@ -386,10 +394,12 @@ const editForm = ref({
 // 全局标签列表
 const allTags = ref<string[]>([])
 
-// 工时统计弹窗
+// 月度工时统计弹窗
 const tagStatsVisible = ref(false)
 const tagStatsLoading = ref(false)
-const monthlyTagStats = ref<any[]>([])
+const monthlyTagStats = ref<any[]>([])   // 保留兼容，不再使用
+const currentMonthStat = ref<any>(null)
+const statsMonth = ref<string>(dayjs().format('YYYY-MM'))
 
 // 标签颜色池
 const TAG_COLORS = [
@@ -426,39 +436,40 @@ const getBarWidth = (days: number, total: number): string => {
 
 const handleOpenTagStats = async () => {
   tagStatsVisible.value = true
+  await loadMonthTagStats(statsMonth.value)
+}
+
+const handleStatsMonthChange = async (month: string) => {
+  await loadMonthTagStats(month)
+}
+
+const loadMonthTagStats = async (month: string) => {
   tagStatsLoading.value = true
   try {
-    const result = await DailyReportService.GetMonthlyTagStats()
-    // 为每个月找出多标签天，并加载已保存的比例
-    const enriched = await Promise.all((result || []).map(async (ms: any) => {
-      // 从后端拿到的 tag_stats 已经是按比例计算好的 days
-      // 需要额外找出哪些天有多个标签，以便展示编辑器
-      // 通过 GetRange 拿到该月所有日报
-      const [year, month] = ms.month.split('-')
-      const startDate = `${ms.month}-01`
-      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate()
-      const endDate = `${ms.month}-${String(lastDay).padStart(2, '0')}`
-      const reports = await DailyReportService.GetRange(startDate, endDate)
+    const ms = await DailyReportService.GetMonthTagStats(month)
+    if (!ms) {
+      currentMonthStat.value = null
+      return
+    }
 
-      // 找出有 2+ 个标签的日期
-      const multiTagDates: Array<{ date: string; tags: string[]; savedRatios: Record<string, number> }> = []
-      for (const r of (reports || [])) {
-        const validTags = (r.tags || []).filter((t: string) => t !== '')
-        if (validTags.length >= 2) {
-          const savedRatios = await DailyReportService.GetTagRatios(r.date)
-          multiTagDates.push({
-            date: r.date,
-            tags: validTags,
-            savedRatios: savedRatios || {}
-          })
-        }
+    // 找出有 2+ 个标签的日期，加载已保存比例
+    const startDate = `${month}-01`
+    const [year, mon] = month.split('-')
+    const lastDay = new Date(parseInt(year), parseInt(mon), 0).getDate()
+    const endDate = `${month}-${String(lastDay).padStart(2, '0')}`
+    const reports = await DailyReportService.GetRange(startDate, endDate)
+
+    const multiTagDates: Array<{ date: string; tags: string[]; savedRatios: Record<string, number> }> = []
+    for (const r of (reports || [])) {
+      const validTags = (r.tags || []).filter((t: string) => t !== '')
+      if (validTags.length >= 2) {
+        const savedRatios = await DailyReportService.GetTagRatios(r.date)
+        multiTagDates.push({ date: r.date, tags: validTags, savedRatios: savedRatios || {} })
       }
-      // 按日期升序
-      multiTagDates.sort((a, b) => a.date.localeCompare(b.date))
+    }
+    multiTagDates.sort((a, b) => a.date.localeCompare(b.date))
 
-      return { ...ms, multi_tag_dates: multiTagDates }
-    }))
-    monthlyTagStats.value = enriched
+    currentMonthStat.value = { ...ms, multi_tag_dates: multiTagDates }
   } catch (e) {
     message.error('加载统计数据失败')
     console.error(e)
@@ -479,11 +490,9 @@ const toggleMultiTagExpand = (month: string) => {
   expandedMonths.value = new Set(expandedMonths.value)
 }
 
-// 某天比例保存后，刷新该月统计
+// 某天比例保存后，刷新当前月统计
 const handleRatioSaved = async (month: string) => {
-  // 重新加载整个统计（简单可靠）
-  await handleOpenTagStats()
-  // 保持该月展开状态
+  await loadMonthTagStats(month)
   expandedMonths.value.add(month)
   expandedMonths.value = new Set(expandedMonths.value)
 }
@@ -858,7 +867,7 @@ onMounted(() => {
 
 .week-row-centered {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   justify-content: center;
   width: 100%;
   max-width: 1200px;
@@ -872,7 +881,7 @@ onMounted(() => {
   padding: 16px;
   width: 140px;
   min-width: 140px;
-  height: calc(100vh - 280px);
+  height: calc(100vh - 220px);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -1292,6 +1301,10 @@ onMounted(() => {
 }
 
 /* 工时统计弹窗样式 */
+.stats-month-picker {
+  margin-bottom: 16px;
+}
+
 .stats-loading,
 .stats-empty {
   display: flex;
@@ -1346,7 +1359,7 @@ onMounted(() => {
 }
 
 .tag-stat-name {
-  min-width: 90px;
+  min-width: 120px;
   text-align: right;
 }
 
