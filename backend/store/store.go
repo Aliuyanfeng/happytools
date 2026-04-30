@@ -12,17 +12,18 @@ import (
 )
 
 var (
-	DB                      *bbolt.DB
-	todoBucket              = []byte("todos")
-	categoryBucket          = []byte("categories")
-	dailyReportBucket       = []byte("daily_reports")
-	appSettingsBucket       = []byte("app_settings")
-	vtTaskBucket            = []byte("vt_tasks")
-	vtFileBucket            = []byte("vt_files") // 批量任务中的子文件
-	gitRepoBucket           = []byte("git_repos")
-	gitQuickPanelBucket     = []byte("git_quick_panels")
-	makefileRecentBucket    = []byte("makefile_recent")
-	makefileTemplateBucket  = []byte("makefile_templates")
+	DB                          *bbolt.DB
+	todoBucket                  = []byte("todos")
+	categoryBucket              = []byte("categories")
+	dailyReportBucket           = []byte("daily_reports")
+	dailyReportTagRatioBucket   = []byte("daily_report_tag_ratios") // 每天各标签工时比例
+	appSettingsBucket           = []byte("app_settings")
+	vtTaskBucket                = []byte("vt_tasks")
+	vtFileBucket                = []byte("vt_files") // 批量任务中的子文件
+	gitRepoBucket               = []byte("git_repos")
+	gitQuickPanelBucket         = []byte("git_quick_panels")
+	makefileRecentBucket        = []byte("makefile_recent")
+	makefileTemplateBucket      = []byte("makefile_templates")
 )
 
 // Init 初始化 bbolt 数据库
@@ -35,7 +36,7 @@ func Init(path string) error {
 
 	// 创建所有 bucket
 	return DB.Update(func(tx *bbolt.Tx) error {
-		buckets := [][]byte{todoBucket, categoryBucket, dailyReportBucket, appSettingsBucket, vtTaskBucket, vtFileBucket, gitRepoBucket, gitQuickPanelBucket, makefileRecentBucket, makefileTemplateBucket}
+		buckets := [][]byte{todoBucket, categoryBucket, dailyReportBucket, dailyReportTagRatioBucket, appSettingsBucket, vtTaskBucket, vtFileBucket, gitRepoBucket, gitQuickPanelBucket, makefileRecentBucket, makefileTemplateBucket}
 		for _, bucket := range buckets {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
 				return err

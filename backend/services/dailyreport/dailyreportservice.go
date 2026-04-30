@@ -24,6 +24,20 @@ type DailyReportStats struct {
 	LongestStreak int `json:"longest_streak"`
 }
 
+// MonthTagStat 某月某标签的统计
+type MonthTagStat struct {
+	Tag  string  `json:"tag"`
+	Days float64 `json:"days"` // 支持小数（多标签按比例拆分）
+}
+
+// MonthStat 某月的统计数据
+type MonthStat struct {
+	Month         string         `json:"month"`          // YYYY-MM
+	TagStats      []MonthTagStat `json:"tag_stats"`
+	UntaggedDates []string       `json:"untagged_dates"` // 未打标签的日期列表
+	TotalDays     int            `json:"total_days"`
+}
+
 type DailyReportService struct{}
 
 func NewDailyReportService() *DailyReportService {
@@ -131,4 +145,44 @@ func (d *DailyReportService) GetStats() (*DailyReportStats, error) {
 		CurrentStreak: stats.CurrentStreak,
 		LongestStreak: stats.LongestStreak,
 	}, nil
+}
+
+// GetMonthlyTagStats 获取所有月份的标签工时统计
+func (d *DailyReportService) GetMonthlyTagStats() ([]MonthStat, error) {
+	monthStats, err := store.GetMonthlyTagStats()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]MonthStat, len(monthStats))
+	for i, ms := range monthStats {
+		tagStats := make([]MonthTagStat, len(ms.TagStats))
+		for j, ts := range ms.TagStats {
+			tagStats[j] = MonthTagStat{Tag: ts.Tag, Days: ts.Days}
+		}
+		result[i] = MonthStat{
+			Month:         ms.Month,
+			TagStats:      tagStats,
+			UntaggedDates: ms.UntaggedDates,
+			TotalDays:     ms.TotalDays,
+		}
+	}
+	return result, nil
+}
+
+// SaveTagRatios 保存某天各标签的工时比例（所有比例之和应为 1.0）
+func (d *DailyReportService) SaveTagRatios(date string, ratios map[string]float64) error {
+	return store.SaveTagRatios(date, ratios)
+}
+
+// GetTagRatios 获取某天各标签的工时比例，不存在则返回空 map
+func (d *DailyReportService) GetTagRatios(date string) (map[string]float64, error) {
+	ratios, err := store.GetTagRatios(date)
+	if err != nil {
+		return nil, err
+	}
+	if ratios == nil {
+		return map[string]float64{}, nil
+	}
+	return ratios, nil
 }

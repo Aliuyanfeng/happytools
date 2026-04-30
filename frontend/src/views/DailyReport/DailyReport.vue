@@ -24,6 +24,10 @@
             <a-button type="primary" @click="handleToday" size="large">
               今天
             </a-button>
+            <a-button @click="handleOpenTagStats" size="large">
+              <BarChartOutlined />
+              工时统计
+            </a-button>
           </a-space>
         </a-col>
       </a-row>
@@ -39,7 +43,9 @@
             :class="{
               'is-today': day.isToday,
               'has-report': day.hasReport,
-              'is-weekend': day.isWeekend
+              'is-weekend': day.isWeekend,
+              'is-holiday': day.isHoliday,
+              'is-workday': day.isWorkday
             }"
             v-for="day in weekDays"
             :key="day.date"
@@ -49,8 +55,12 @@
               <div class="day-name">{{ day.dayName }}</div>
               <div class="day-date">{{ day.dayNumber }}</div>
               <div v-if="day.isToday" class="today-badge">今天</div>
+              <div v-else-if="day.isHoliday" class="holiday-week-badge">假</div>
+              <div v-else-if="day.isWorkday" class="workday-week-badge">班</div>
             </div>
             <div class="day-content">
+              <!-- 节日名称 -->
+              <div v-if="day.holidayName" class="week-holiday-name">{{ day.holidayName }}</div>
               <div v-if="day.hasReport" class="report-preview">
                 <div class="status-badge success">
                   <CheckCircleOutlined />
@@ -86,24 +96,36 @@
         </div>
         <div class="month-body">
           <div class="month-week" v-for="(week, weekIndex) in monthWeeks" :key="weekIndex">
-            <div
-              class="day-card-mini"
-              :class="{
-                'is-today': day.isToday,
-                'has-report': day.hasReport,
-                'is-current-month': day.isCurrentMonth,
-                'is-weekend': day.isWeekend
-              }"
+            <a-tooltip
               v-for="day in week"
               :key="day.date"
-              @click="handleDayClick(day)"
+              :title="day.holidayName || undefined"
+              placement="top"
             >
-              <div class="day-number">{{ day.dayNumber }}</div>
-              <div v-if="day.hasReport" class="report-indicator">
-                <CheckCircleFilled class="icon-success" />
+              <div
+                class="day-card-mini"
+                :class="{
+                  'is-today': day.isToday,
+                  'has-report': day.hasReport,
+                  'is-current-month': day.isCurrentMonth,
+                  'is-weekend': day.isWeekend,
+                  'is-holiday': day.isHoliday,
+                  'is-workday': day.isWorkday
+                }"
+                @click="handleDayClick(day)"
+              >
+                <!-- 节假日角标 -->
+                <span v-if="day.isHoliday && day.isCurrentMonth" class="holiday-badge">假</span>
+                <span v-if="day.isWorkday && day.isCurrentMonth" class="workday-badge">班</span>
+
+                <div class="day-number">{{ day.dayNumber }}</div>
+                <div v-if="day.holidayName && day.isCurrentMonth" class="holiday-name">{{ day.holidayName }}</div>
+                <div v-if="day.hasReport" class="report-indicator">
+                  <CheckCircleFilled class="icon-success" />
+                </div>
+                <div v-if="day.isToday" class="today-dot"></div>
               </div>
-              <div v-if="day.isToday" class="today-dot"></div>
-            </div>
+            </a-tooltip>
           </div>
         </div>
       </div>
@@ -194,11 +216,98 @@
         </a-form-item>
       </a-form>
     </a-modal>
+    <!-- 工时统计弹窗 -->
+    <a-modal
+      v-model:open="tagStatsVisible"
+      title="工时统计 · 标签分布"
+      width="800px"
+      :footer="null"
+      :bodyStyle="{ padding: '16px 24px 24px', maxHeight: '75vh', overflowY: 'auto' }"
+    >
+      <div v-if="tagStatsLoading" class="stats-loading">
+        <a-spin tip="加载中..." />
+      </div>
+      <div v-else-if="monthlyTagStats.length === 0" class="stats-empty">
+        <a-empty description="暂无日报数据" />
+      </div>
+      <div v-else class="stats-content">
+        <div
+          v-for="ms in monthlyTagStats"
+          :key="ms.month"
+          class="month-stat-block"
+        >
+          <!-- 月份标题 -->
+          <div class="month-stat-header">
+            <span class="month-stat-title">{{ ms.month }}</span>
+            <span class="month-stat-total">共 {{ ms.total_days }} 天日报</span>
+          </div>
+
+          <!-- 标签统计 -->
+          <div v-if="ms.tag_stats && ms.tag_stats.length" class="tag-stat-list">
+            <div
+              v-for="ts in ms.tag_stats"
+              :key="ts.tag"
+              class="tag-stat-row"
+            >
+              <span class="tag-stat-name">
+                <a-tag :color="getTagColor(ts.tag)">{{ ts.tag }}</a-tag>
+              </span>
+              <div class="tag-stat-bar-wrap">
+                <div
+                  class="tag-stat-bar"
+                  :style="{ width: getBarWidth(ts.days, ms.total_days), backgroundColor: getTagColorHex(ts.tag) }"
+                ></div>
+              </div>
+              <span class="tag-stat-days">{{ formatDays(ts.days) }} 天</span>
+            </div>
+          </div>
+          <div v-else class="no-tags-hint">本月所有日报均未打标签</div>
+
+          <!-- 多标签天的工时比例编辑器 -->
+          <div v-if="ms.multi_tag_dates && ms.multi_tag_dates.length" class="multi-tag-section">
+            <div
+              class="multi-tag-section-title"
+              @click="toggleMultiTagExpand(ms.month)"
+            >
+              <SlidersOutlined class="multi-tag-icon" />
+              本月有 {{ ms.multi_tag_dates.length }} 天包含多个标签，点击调整工时占比
+              <DownOutlined :class="['expand-arrow', { expanded: expandedMonths.has(ms.month) }]" />
+            </div>
+            <div v-if="expandedMonths.has(ms.month)" class="multi-tag-editors">
+              <TagRatioEditor
+                v-for="item in ms.multi_tag_dates"
+                :key="item.date"
+                :date="item.date"
+                :tags="item.tags"
+                :saved-ratios="item.savedRatios"
+                @saved="handleRatioSaved(ms.month)"
+              />
+            </div>
+          </div>
+
+          <!-- 未打标签日期 -->
+          <div v-if="ms.untagged_dates && ms.untagged_dates.length" class="untagged-section">
+            <div class="untagged-title">
+              <ExclamationCircleOutlined class="untagged-icon" />
+              未打标签日期（{{ ms.untagged_dates.length }} 天）
+            </div>
+            <div class="untagged-dates">
+              <a-tag
+                v-for="d in ms.untagged_dates"
+                :key="d"
+                class="untagged-date-tag"
+                @click="handleClickUntaggedDate(d)"
+              >{{ d }}</a-tag>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import {
   LeftOutlined,
@@ -208,10 +317,16 @@ import {
   EditOutlined,
   CalendarOutlined,
   InfoCircleOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  BarChartOutlined,
+  ExclamationCircleOutlined,
+  SlidersOutlined,
+  DownOutlined
 } from '@ant-design/icons-vue'
 import dayjs, { Dayjs } from 'dayjs'
 import * as DailyReportService from '../../../bindings/github.com/Aliuyanfeng/happytools/backend/services/dailyreport/dailyreportservice'
+import TagRatioEditor from './TagRatioEditor.vue'
+import { getMonthHolidayMap, type DayHolidayInfo } from '../../utils/holidays'
 
 // 视图模式
 const viewMode = ref<'week' | 'month'>('week')
@@ -221,6 +336,37 @@ const currentDate = ref<Dayjs>(dayjs())
 
 // 日报数据
 const reports = ref<Map<string, any>>(new Map())
+
+// 节假日数据（月视图用）：date -> DayHolidayInfo
+const holidayMap = ref<Map<string, DayHolidayInfo>>(new Map())
+
+// 加载节假日数据（周视图可能跨月，需同时加载相邻月）
+const loadHolidays = async () => {
+  try {
+    if (viewMode.value === 'month') {
+      const year = currentDate.value.year()
+      const month = currentDate.value.month() + 1
+      holidayMap.value = await getMonthHolidayMap(year, month)
+    } else {
+      // 周视图：加载本周涉及的所有月份
+      const startOfWeek = currentDate.value.startOf('week').add(1, 'day')
+      const endOfWeek = startOfWeek.add(6, 'day')
+      const maps = await Promise.all([
+        getMonthHolidayMap(startOfWeek.year(), startOfWeek.month() + 1),
+        // 若跨月则也加载结束月
+        startOfWeek.month() !== endOfWeek.month()
+          ? getMonthHolidayMap(endOfWeek.year(), endOfWeek.month() + 1)
+          : Promise.resolve(new Map())
+      ])
+      const merged = new Map<string, DayHolidayInfo>()
+      maps.forEach(m => m.forEach((v, k) => merged.set(k, v)))
+      holidayMap.value = merged
+    }
+  } catch (e) {
+    console.error('加载节假日数据失败', e)
+    holidayMap.value = new Map()
+  }
+}
 
 // 编辑弹窗
 const editModalVisible = ref(false)
@@ -239,6 +385,129 @@ const editForm = ref({
 
 // 全局标签列表
 const allTags = ref<string[]>([])
+
+// 工时统计弹窗
+const tagStatsVisible = ref(false)
+const tagStatsLoading = ref(false)
+const monthlyTagStats = ref<any[]>([])
+
+// 标签颜色池
+const TAG_COLORS = [
+  { name: 'blue', hex: '#1890ff' },
+  { name: 'green', hex: '#52c41a' },
+  { name: 'orange', hex: '#fa8c16' },
+  { name: 'purple', hex: '#722ed1' },
+  { name: 'cyan', hex: '#13c2c2' },
+  { name: 'red', hex: '#f5222d' },
+  { name: 'gold', hex: '#faad14' },
+  { name: 'lime', hex: '#a0d911' },
+  { name: 'geekblue', hex: '#2f54eb' },
+  { name: 'magenta', hex: '#eb2f96' },
+]
+
+const tagColorCache = new Map<string, number>()
+let tagColorIndex = 0
+
+const getTagColorIdx = (tag: string): number => {
+  if (!tagColorCache.has(tag)) {
+    tagColorCache.set(tag, tagColorIndex % TAG_COLORS.length)
+    tagColorIndex++
+  }
+  return tagColorCache.get(tag)!
+}
+
+const getTagColor = (tag: string): string => TAG_COLORS[getTagColorIdx(tag)].name
+const getTagColorHex = (tag: string): string => TAG_COLORS[getTagColorIdx(tag)].hex
+
+const getBarWidth = (days: number, total: number): string => {
+  if (!total) return '0%'
+  return Math.round((days / total) * 100) + '%'
+}
+
+const handleOpenTagStats = async () => {
+  tagStatsVisible.value = true
+  tagStatsLoading.value = true
+  try {
+    const result = await DailyReportService.GetMonthlyTagStats()
+    // 为每个月找出多标签天，并加载已保存的比例
+    const enriched = await Promise.all((result || []).map(async (ms: any) => {
+      // 从后端拿到的 tag_stats 已经是按比例计算好的 days
+      // 需要额外找出哪些天有多个标签，以便展示编辑器
+      // 通过 GetRange 拿到该月所有日报
+      const [year, month] = ms.month.split('-')
+      const startDate = `${ms.month}-01`
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate()
+      const endDate = `${ms.month}-${String(lastDay).padStart(2, '0')}`
+      const reports = await DailyReportService.GetRange(startDate, endDate)
+
+      // 找出有 2+ 个标签的日期
+      const multiTagDates: Array<{ date: string; tags: string[]; savedRatios: Record<string, number> }> = []
+      for (const r of (reports || [])) {
+        const validTags = (r.tags || []).filter((t: string) => t !== '')
+        if (validTags.length >= 2) {
+          const savedRatios = await DailyReportService.GetTagRatios(r.date)
+          multiTagDates.push({
+            date: r.date,
+            tags: validTags,
+            savedRatios: savedRatios || {}
+          })
+        }
+      }
+      // 按日期升序
+      multiTagDates.sort((a, b) => a.date.localeCompare(b.date))
+
+      return { ...ms, multi_tag_dates: multiTagDates }
+    }))
+    monthlyTagStats.value = enriched
+  } catch (e) {
+    message.error('加载统计数据失败')
+    console.error(e)
+  } finally {
+    tagStatsLoading.value = false
+  }
+}
+
+// 展开/收起某月的多标签编辑器
+const expandedMonths = ref<Set<string>>(new Set())
+const toggleMultiTagExpand = (month: string) => {
+  if (expandedMonths.value.has(month)) {
+    expandedMonths.value.delete(month)
+  } else {
+    expandedMonths.value.add(month)
+  }
+  // 触发响应式更新
+  expandedMonths.value = new Set(expandedMonths.value)
+}
+
+// 某天比例保存后，刷新该月统计
+const handleRatioSaved = async (month: string) => {
+  // 重新加载整个统计（简单可靠）
+  await handleOpenTagStats()
+  // 保持该月展开状态
+  expandedMonths.value.add(month)
+  expandedMonths.value = new Set(expandedMonths.value)
+}
+
+// 格式化天数：整数不显示小数，小数保留2位
+const formatDays = (days: number): string => {
+  if (days === 0) return '0'
+  if (Math.abs(days - Math.round(days)) < 0.005) return Math.round(days).toString()
+  return days.toFixed(2)
+}
+
+// 点击未打标签日期，跳转到对应日期并打开编辑弹窗
+const handleClickUntaggedDate = async (date: string) => {
+  tagStatsVisible.value = false
+  currentDate.value = dayjs(date)
+  await loadReports()
+  // 找到该日期的日报并打开编辑
+  const report = reports.value.get(date)
+  handleDayClick({
+    date,
+    hasReport: !!report,
+    report
+  })
+}
 
 const loadAllTags = async () => {
   try {
@@ -273,6 +542,7 @@ const weekDays = computed(() => {
     const dateStr = day.format('YYYY-MM-DD')
     const report = reports.value.get(dateStr)
     const dayOfWeek = day.day()
+    const holiday = holidayMap.value.get(dateStr)
 
     days.push({
       date: dateStr,
@@ -283,7 +553,10 @@ const weekDays = computed(() => {
       isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
       hasReport: !!report,
       previewText: report ? report.content.substring(0, 80) + (report.content.length > 80 ? '...' : '') : '',
-      report: report
+      report: report,
+      isHoliday: holiday?.isHoliday ?? false,
+      isWorkday: holiday?.isWorkday ?? false,
+      holidayName: holiday?.name ?? ''
     })
   }
 
@@ -309,7 +582,10 @@ const monthWeeks = computed(() => {
       isToday: false,
       isCurrentMonth: false,
       isWeekend: false,
-      hasReport: false
+      hasReport: false,
+      isHoliday: false,
+      isWorkday: false,
+      holidayName: ''
     })
   }
 
@@ -319,6 +595,7 @@ const monthWeeks = computed(() => {
     const dateStr = date.format('YYYY-MM-DD')
     const report = reports.value.get(dateStr)
     const dayOfWeek = date.day()
+    const holiday = holidayMap.value.get(dateStr)
 
     week.push({
       date: dateStr,
@@ -327,7 +604,10 @@ const monthWeeks = computed(() => {
       isCurrentMonth: true,
       isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
       hasReport: !!report,
-      report: report
+      report: report,
+      isHoliday: holiday?.isHoliday ?? false,
+      isWorkday: holiday?.isWorkday ?? false,
+      holidayName: holiday?.name ?? ''
     })
 
     if (week.length === 7) {
@@ -347,7 +627,10 @@ const monthWeeks = computed(() => {
         isToday: false,
         isCurrentMonth: false,
         isWeekend: false,
-        hasReport: false
+        hasReport: false,
+        isHoliday: false,
+        isWorkday: false,
+        holidayName: ''
       })
     }
     weeks.push(week)
@@ -385,6 +668,7 @@ const loadReports = async () => {
 // 处理视图模式切换
 const handleViewModeChange = () => {
   loadReports()
+  loadHolidays()
 }
 
 // 处理上一周/月
@@ -395,6 +679,7 @@ const handlePrev = () => {
     currentDate.value = currentDate.value.subtract(1, 'month')
   }
   loadReports()
+  loadHolidays()
 }
 
 // 处理下一周/月
@@ -405,12 +690,14 @@ const handleNext = () => {
     currentDate.value = currentDate.value.add(1, 'month')
   }
   loadReports()
+  loadHolidays()
 }
 
 // 处理回到今天
 const handleToday = () => {
   currentDate.value = dayjs()
   loadReports()
+  loadHolidays()
 }
 
 // 处理日期点击
@@ -521,6 +808,7 @@ const handleCancelEdit = () => {
 onMounted(() => {
   loadReports()
   loadAllTags()
+  loadHolidays()
 })
 </script>
 
@@ -610,6 +898,71 @@ onMounted(() => {
 
 .week-view .day-card.is-weekend {
   background: #fafafa;
+}
+
+/* 周视图：法定假日 */
+.week-view .day-card.is-holiday {
+  border-color: #ffa39e;
+  background: linear-gradient(135deg, #fff1f0 0%, #ffffff 100%);
+}
+
+.week-view .day-card.is-holiday .day-date {
+  color: #cf1322;
+}
+
+/* 周视图：调休上班 */
+.week-view .day-card.is-workday {
+  border-color: #ffe58f;
+  background: linear-gradient(135deg, #fffbe6 0%, #ffffff 100%);
+}
+
+.week-view .day-card.is-workday .day-date {
+  color: #d46b08;
+}
+
+/* 周视图假/班角标 */
+.holiday-week-badge,
+.workday-week-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.holiday-week-badge {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.workday-week-badge {
+  background: #fa8c16;
+  color: #fff;
+}
+
+/* 周视图节日名称 */
+.week-holiday-name {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  align-self: flex-start;
+}
+
+.is-holiday .week-holiday-name {
+  background: #fff1f0;
+  color: #cf1322;
+  border: 1px solid #ffa39e;
+}
+
+.is-workday .week-holiday-name {
+  background: #fffbe6;
+  color: #d46b08;
+  border: 1px solid #ffe58f;
 }
 
 .day-header {
@@ -784,6 +1137,67 @@ onMounted(() => {
   background: #fafafa;
 }
 
+/* 法定假日：红色背景 */
+.month-view .day-card-mini.is-holiday.is-current-month {
+  background: #fff1f0;
+  border-color: #ffa39e;
+}
+
+.month-view .day-card-mini.is-holiday.is-current-month .day-number {
+  color: #cf1322;
+}
+
+/* 调休上班：黄色背景（周末但要上班） */
+.month-view .day-card-mini.is-workday.is-current-month {
+  background: #fffbe6;
+  border-color: #ffe58f;
+}
+
+.month-view .day-card-mini.is-workday.is-current-month .day-number {
+  color: #d46b08;
+}
+
+/* 假/班 角标 */
+.holiday-badge,
+.workday-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+.holiday-badge {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.workday-badge {
+  background: #fa8c16;
+  color: #fff;
+}
+
+/* 节日名称小字 */
+.holiday-name {
+  font-size: 10px;
+  color: #cf1322;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.month-view .day-card-mini.is-workday.is-current-month .holiday-name {
+  color: #d46b08;
+}
+
 .day-number {
   font-size: 18px;
   font-weight: 600;
@@ -875,5 +1289,177 @@ onMounted(() => {
 
 .period-hint .mr-1 {
   margin-right: 4px;
+}
+
+/* 工时统计弹窗样式 */
+.stats-loading,
+.stats-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.month-stat-block {
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.month-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.month-stat-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #262626;
+}
+
+.month-stat-total {
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.tag-stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tag-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tag-stat-name {
+  min-width: 90px;
+  text-align: right;
+}
+
+.tag-stat-bar-wrap {
+  flex: 1;
+  height: 18px;
+  background: #f0f0f0;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.tag-stat-bar {
+  height: 100%;
+  border-radius: 9px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.tag-stat-days {
+  min-width: 44px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: #595959;
+}
+
+.no-tags-hint {
+  font-size: 13px;
+  color: #bfbfbf;
+  padding: 4px 0;
+}
+
+.untagged-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #e8e8e8;
+}
+
+.untagged-title {
+  font-size: 13px;
+  color: #fa8c16;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.untagged-icon {
+  color: #fa8c16;
+}
+
+.untagged-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.untagged-date-tag {
+  cursor: pointer;
+  border-color: #ffd591;
+  color: #d46b08;
+  background: #fff7e6;
+  transition: all 0.2s;
+}
+
+.untagged-date-tag:hover {
+  background: #ffd591;
+  border-color: #fa8c16;
+}
+
+/* 多标签天编辑区域 */
+.multi-tag-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #d6e4ff;
+}
+
+.multi-tag-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #1890ff;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  transition: color 0.2s;
+}
+
+.multi-tag-section-title:hover {
+  color: #096dd9;
+}
+
+.multi-tag-icon {
+  color: #1890ff;
+}
+
+.expand-arrow {
+  margin-left: auto;
+  transition: transform 0.25s ease;
+  font-size: 12px;
+}
+
+.expand-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.multi-tag-editors {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 </style>

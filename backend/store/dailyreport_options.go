@@ -301,3 +301,178 @@ func GetDailyReportStats() (*DailyReportStats, error) {
 
 	return stats, nil
 }
+
+// MonthTagStat store 层的月标签统计
+type MonthTagStat struct {
+	Tag  string
+	Days float64 // 支持小数（多标签按比例拆分）
+}
+
+// MonthStat store 层的月统计
+type MonthStat struct {
+	Month         string
+	TagStats      []MonthTagStat
+	UntaggedDates []string
+	TotalDays     int
+}
+
+// DailyTagRatio 某天各标签的工时比例，所有 tag 的 ratio 之和 = 1.0
+// key: date (YYYY-MM-DD), value: JSON of map[string]float64
+type DailyTagRatio struct {
+	Date   string             `json:"date"`
+	Ratios map[string]float64 `json:"ratios"` // tag -> ratio (0~1)
+}
+
+// SaveTagRatios 保存某天的标签工时比例
+func SaveTagRatios(date string, ratios map[string]float64) error {
+	data, err := json.Marshal(DailyTagRatio{Date: date, Ratios: ratios})
+	if err != nil {
+		return err
+	}
+	return DB.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(dailyReportTagRatioBucket)
+		return b.Put([]byte(date), data)
+	})
+}
+
+// GetTagRatios 获取某天的标签工时比例，不存在则返回 nil
+func GetTagRatios(date string) (map[string]float64, error) {
+	var result map[string]float64
+	err := DB.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(dailyReportTagRatioBucket)
+		if b == nil {
+			return nil
+		}
+		v := b.Get([]byte(date))
+		if v == nil {
+			return nil
+		}
+		var r DailyTagRatio
+		if err := json.Unmarshal(v, &r); err != nil {
+			return err
+		}
+		result = r.Ratios
+		return nil
+	})
+	return result, err
+}
+
+// getAllTagRatios 内部：获取所有已保存的比例，返回 date -> ratios
+func getAllTagRatios(tx *bbolt.Tx) map[string]map[string]float64 {
+	out := make(map[string]map[string]float64)
+	b := tx.Bucket(dailyReportTagRatioBucket)
+	if b == nil {
+		return out
+	}
+	b.ForEach(func(k, v []byte) error {
+		var r DailyTagRatio
+		if json.Unmarshal(v, &r) == nil {
+			out[r.Date] = r.Ratios
+		}
+		return nil
+	})
+	return out
+}
+
+// GetMonthlyTagStats 按月统计每个标签工时（天数，支持小数比例）及未打标签日期
+func GetMonthlyTagStats() ([]MonthStat, error) {
+	type monthData struct {
+		tagDays       map[string]float64
+		untaggedDates []string
+		totalDays     int
+	}
+
+	monthMap := make(map[string]*monthData)
+	var allRatios map[string]map[string]float64
+
+	err := DB.View(func(tx *bbolt.Tx) error {
+		allRatios = getAllTagRatios(tx)
+
+		b := tx.Bucket(dailyReportBucket)
+		if b == nil {
+			return nil
+		}
+		return b.ForEach(func(k, v []byte) error {
+			var r DailyReport
+			if err := json.Unmarshal(v, &r); err != nil {
+				return nil
+			}
+			if len(r.Date) < 7 {
+				return nil
+			}
+			month := r.Date[:7]
+			if _, ok := monthMap[month]; !ok {
+				monthMap[month] = &monthData{
+					tagDays: make(map[string]float64),
+				}
+			}
+			md := monthMap[month]
+			md.totalDays++
+
+			validTags := make([]string, 0, len(r.Tags))
+			for _, t := range r.Tags {
+				if t != "" {
+					validTags = append(validTags, t)
+				}
+			}
+
+			if len(validTags) == 0 {
+				md.untaggedDates = append(md.untaggedDates, r.Date)
+				return nil
+			}
+
+			// 取用户自定义比例，若无则均分
+			ratios, hasCustom := allRatios[r.Date]
+			for _, tag := range validTags {
+				var ratio float64
+				if hasCustom {
+					if rv, ok := ratios[tag]; ok {
+						ratio = rv
+					} else {
+						ratio = 1.0 / float64(len(validTags))
+					}
+				} else {
+					ratio = 1.0 / float64(len(validTags))
+				}
+				md.tagDays[tag] += ratio
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	months := make([]string, 0, len(monthMap))
+	for m := range monthMap {
+		months = append(months, m)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(months)))
+
+	result := make([]MonthStat, 0, len(months))
+	for _, month := range months {
+		md := monthMap[month]
+
+		tagStats := make([]MonthTagStat, 0, len(md.tagDays))
+		for tag, days := range md.tagDays {
+			tagStats = append(tagStats, MonthTagStat{Tag: tag, Days: days})
+		}
+		sort.Slice(tagStats, func(i, j int) bool {
+			if tagStats[i].Days != tagStats[j].Days {
+				return tagStats[i].Days > tagStats[j].Days
+			}
+			return tagStats[i].Tag < tagStats[j].Tag
+		})
+
+		sort.Strings(md.untaggedDates)
+
+		result = append(result, MonthStat{
+			Month:         month,
+			TagStats:      tagStats,
+			UntaggedDates: md.untaggedDates,
+			TotalDays:     md.totalDays,
+		})
+	}
+
+	return result, nil
+}
