@@ -68,14 +68,17 @@ git commit -m "feat: 添加新功能"
 # 2. 生成 CHANGELOG（使用 --next-tag 预览新标签）
 git-chglog --next-tag v1.0.0 -o CHANGELOG.md
 
-# 3. 提交 CHANGELOG
-git add CHANGELOG.md
+# 3. 修改版本号 path: build\config.yml
+info.version的value值修改为要发布的版本号
+
+# 4. 提交 CHANGELOG
+git add CHANGELOG.md build/config.yml 或者 git add .
 git commit -m "build: update v1.0.0"
 
-# 4. 创建标签
+# 5. 创建标签
 git tag v1.0.0
 
-# 5. 推送代码和标签
+# 6. 推送代码和标签
 git push origin main
 git push origin v1.0.0
 ```
