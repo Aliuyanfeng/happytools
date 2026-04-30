@@ -1,4 +1,15 @@
 
+<a name="v1.1.4"></a>
+## [v1.1.4](https://github.com/Aliuyanfeng/happytools/compare/v1.1.3...v1.1.4)
+
+> 2026-04-30
+
+### Features
+
+* 工具盒子增加json格式化功能
+* 日报功能增加统计，方便计算工时
+
+
 <a name="v1.1.3"></a>
 ## [v1.1.3](https://github.com/Aliuyanfeng/happytools/compare/v1.1.2...v1.1.3)
 
