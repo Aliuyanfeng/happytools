@@ -89,6 +89,12 @@ const routes: Array<RouteRecordRaw> = [
                 name: 'checksum',
                 meta: { title: '校验和计算' },
                 component: () => import('../views/Toolbox/Checksum.vue')
+            },
+            {
+                path: 'json-formatter',
+                name: 'json-formatter',
+                meta: { title: 'JSON 格式化' },
+                component: () => import('../views/Toolbox/JsonFormatter.vue')
             }
         ]
     },

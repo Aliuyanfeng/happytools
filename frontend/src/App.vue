@@ -14,6 +14,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { HomeOutlined } from '@ant-design/icons-vue';
 import { theme as antTheme, notification, Button } from 'ant-design-vue';
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import TitleBar from './components/TitleBar.vue';
 import { useAppStore } from './stores/app';
 import { useSettingsStore } from './stores/settings';
@@ -83,7 +84,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <a-config-provider :theme="antdTheme">
+  <a-config-provider :theme="antdTheme" :locale="zhCN">
     <a-layout class="layout">
       <TitleBar />
       <a-layout>

@@ -15,6 +15,9 @@ import './style.css' //add
 import 'ant-design-vue/dist/reset.css';
 import router from './router/router';
 import i18n from './locales';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
+dayjs.locale('zh-cn');
 
 const app = createApp(App)
 const pinia = createPinia()

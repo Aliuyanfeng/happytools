@@ -65,6 +65,10 @@
             <template #icon><SoundOutlined /></template>
             <span v-if="!isCollapsed">NCM 转 MP3</span>
           </a-menu-item>
+          <a-menu-item key="json-formatter">
+            <template #icon><CodeOutlined /></template>
+            <span v-if="!isCollapsed">JSON 格式化</span>
+          </a-menu-item>
         </a-menu-item-group>
       </a-menu>
 
@@ -135,6 +139,7 @@ import {
   BgColorsOutlined,
   SoundOutlined,
   SafetyCertificateOutlined,
+  CodeOutlined,
 } from '@ant-design/icons-vue'
 
 const { t } = useI18n()
@@ -156,6 +161,7 @@ const currentTool = computed(() => {
   if (path.includes('batch-rename')) return 'batch-rename'
   if (path.includes('ncm-converter')) return 'ncm-converter'
   if (path.includes('checksum')) return 'checksum'
+  if (path.includes('json-formatter')) return 'json-formatter'
   return ''
 })
 
