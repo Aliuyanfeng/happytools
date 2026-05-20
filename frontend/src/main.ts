@@ -17,6 +17,8 @@ import router from './router/router';
 import i18n from './locales';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
+import isoWeek from 'dayjs/plugin/isoWeek';
+dayjs.extend(isoWeek);
 dayjs.locale('zh-cn');
 
 const app = createApp(App)

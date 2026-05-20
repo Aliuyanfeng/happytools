@@ -357,7 +357,7 @@ const loadHolidays = async () => {
       holidayMap.value = await getMonthHolidayMap(year, month)
     } else {
       // 周视图：加载本周涉及的所有月份
-      const startOfWeek = currentDate.value.startOf('week').add(1, 'day')
+      const startOfWeek = currentDate.value.startOf('isoWeek')
       const endOfWeek = startOfWeek.add(6, 'day')
       const maps = await Promise.all([
         getMonthHolidayMap(startOfWeek.year(), startOfWeek.month() + 1),
@@ -533,7 +533,7 @@ const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '�
 // 日期显示
 const dateDisplay = computed(() => {
   if (viewMode.value === 'week') {
-    const startOfWeek = currentDate.value.startOf('week').add(1, 'day')
+    const startOfWeek = currentDate.value.startOf('isoWeek')
     const endOfWeek = startOfWeek.add(6, 'day')
     return `${startOfWeek.format('YYYY年MM月DD日')} - ${endOfWeek.format('MM月DD日')}`
   } else {
@@ -543,7 +543,7 @@ const dateDisplay = computed(() => {
 
 // 周视图数据
 const weekDays = computed(() => {
-  const startOfWeek = currentDate.value.startOf('week').add(1, 'day')
+  const startOfWeek = currentDate.value.startOf('isoWeek')
   const days: any[] = []
 
   for (let i = 0; i < 7; i++) {
@@ -655,8 +655,8 @@ const loadReports = async () => {
     let endDate: string
 
     if (viewMode.value === 'week') {
-      startDate = currentDate.value.startOf('week').add(1, 'day').format('YYYY-MM-DD')
-      endDate = currentDate.value.startOf('week').add(7, 'day').format('YYYY-MM-DD')
+      startDate = currentDate.value.startOf('isoWeek').format('YYYY-MM-DD')
+      endDate = currentDate.value.startOf('isoWeek').add(6, 'day').format('YYYY-MM-DD')
     } else {
       startDate = currentDate.value.startOf('month').format('YYYY-MM-DD')
       endDate = currentDate.value.endOf('month').format('YYYY-MM-DD')
