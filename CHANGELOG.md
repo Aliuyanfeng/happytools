@@ -1,8 +1,26 @@
 
+<a name="v1.1.5"></a>
+## [v1.1.5](https://github.com/Aliuyanfeng/happytools/compare/v1.1.4...v1.1.5)
+
+> 2026-05-20
+
+### Docs
+
+* 完善发布说明
+
+### Fixed
+
+* 修复日报视图
+
+
 <a name="v1.1.4"></a>
 ## [v1.1.4](https://github.com/Aliuyanfeng/happytools/compare/v1.1.3...v1.1.4)
 
 > 2026-04-30
+
+### Build
+
+* update v1.1.4
 
 ### Features
 
