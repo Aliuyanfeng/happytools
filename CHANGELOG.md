@@ -1,8 +1,22 @@
 
+<a name="v1.1.6"></a>
+## [v1.1.6](https://github.com/Aliuyanfeng/happytools/compare/v1.1.5...v1.1.6)
+
+> 2026-06-08
+
+### Features
+
+* 新增保留原名重命名功能
+
+
 <a name="v1.1.5"></a>
 ## [v1.1.5](https://github.com/Aliuyanfeng/happytools/compare/v1.1.4...v1.1.5)
 
 > 2026-05-20
+
+### Build
+
+* update v1.1.5
 
 ### Docs
 
