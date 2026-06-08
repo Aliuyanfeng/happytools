@@ -423,3 +423,129 @@ func (r *RenameService) hashFileName(filePath, originalName string, rule HashRen
 	}
 	return hashStr, nil
 }
+
+// ========== 保留原名重命名 ==========
+
+// KeepNameRule 保留原名重命名规则
+type KeepNameRule struct {
+	Position      string `json:"position"`      // 编号位置: "prefix" 加在原文件名前, "suffix" 加在原文件名后
+	Separator     string `json:"separator"`     // 分隔符，默认 "-"
+	StartNumber   int    `json:"startNumber"`   // 起始编号
+	NumberDigits  int    `json:"numberDigits"`  // 编号位数
+	NumberStep    int    `json:"numberStep"`    // 编号步长
+	KeepExtension bool   `json:"keepExtension"` // 是否保留扩展名
+}
+
+// PreviewKeepNameRename 预览保留原名重命名结果
+func (r *RenameService) PreviewKeepNameRename(files []FileInfo, rule KeepNameRule) ([]FileInfo, error) {
+	if len(files) == 0 {
+		return nil, errors.New("没有文件需要重命名")
+	}
+	results := make([]FileInfo, len(files))
+	for i, file := range files {
+		newName, err := r.generateKeepName(file.OriginalName, i, rule)
+		results[i] = file
+		if err != nil {
+			results[i].Error = err.Error()
+		} else {
+			results[i].NewName = newName
+			results[i].NewPath = filepath.Join(filepath.Dir(file.OriginalPath), newName)
+		}
+	}
+	return results, nil
+}
+
+// ExecuteKeepNameRename 执行保留原名重命名
+func (r *RenameService) ExecuteKeepNameRename(files []FileInfo, rule KeepNameRule) (*RenameResult, error) {
+	if len(files) == 0 {
+		return nil, errors.New("没有文件需要重命名")
+	}
+	result := &RenameResult{
+		TotalCount: len(files),
+		Results:    make([]FileInfo, len(files)),
+	}
+	for i, file := range files {
+		if _, err := os.Stat(file.OriginalPath); err != nil {
+			result.Results[i] = file
+			result.Results[i].Error = fmt.Sprintf("文件不存在: %v", err)
+			result.FailedCount++
+			continue
+		}
+		newName, err := r.generateKeepName(file.OriginalName, i, rule)
+		if err != nil {
+			result.Results[i] = file
+			result.Results[i].Error = err.Error()
+			result.FailedCount++
+			continue
+		}
+		newPath := filepath.Join(filepath.Dir(file.OriginalPath), newName)
+		if _, err := os.Stat(newPath); err == nil {
+			result.Results[i] = file
+			result.Results[i].NewName = newName
+			result.Results[i].Error = fmt.Sprintf("目标文件已存在: %s", newName)
+			result.FailedCount++
+			continue
+		}
+		if err := os.Rename(file.OriginalPath, newPath); err != nil {
+			result.Results[i] = file
+			result.Results[i].NewName = newName
+			result.Results[i].Error = fmt.Sprintf("重命名失败: %v", err)
+			result.FailedCount++
+			continue
+		}
+		result.Results[i] = FileInfo{
+			OriginalPath: file.OriginalPath,
+			OriginalName: file.OriginalName,
+			NewName:      newName,
+			NewPath:      newPath,
+			Size:         file.Size,
+			IsDir:        file.IsDir,
+		}
+		result.SuccessCount++
+	}
+	return result, nil
+}
+
+// generateKeepName 生成保留原名的编号文件名
+// position="prefix": "1-文本.txt"
+// position="suffix": "文本-1.txt"
+func (r *RenameService) generateKeepName(originalName string, index int, rule KeepNameRule) (string, error) {
+	ext := ""
+	base := originalName
+	if rule.KeepExtension {
+		ext = filepath.Ext(originalName)
+		base = strings.TrimSuffix(originalName, ext)
+	}
+
+	digits := rule.NumberDigits
+	if digits < 1 {
+		digits = 1
+	}
+	step := rule.NumberStep
+	if step < 1 {
+		step = 1
+	}
+	number := rule.StartNumber + (index * step)
+	formattedNumber := fmt.Sprintf("%0*d", digits, number)
+
+	sep := rule.Separator
+	if sep == "" {
+		sep = "-"
+	}
+
+	var newName string
+	if rule.Position == "prefix" {
+		newName = formattedNumber + sep + base + ext
+	} else {
+		newName = base + sep + formattedNumber + ext
+	}
+
+	if newName == "" {
+		return "", errors.New("生成的文件名为空")
+	}
+	if strings.ContainsAny(newName, `<>:"/\|?*`) {
+		return "", errors.New("文件名包含非法字符")
+	}
+
+	return newName, nil
+}

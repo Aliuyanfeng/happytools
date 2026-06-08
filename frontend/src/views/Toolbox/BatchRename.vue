@@ -53,6 +53,7 @@
     <a-card :title="t('toolbox.batchRename.rulesTitle')" class="mt-4">
       <a-radio-group v-model:value="mode" button-style="solid" class="mb-4">
         <a-radio-button value="custom">{{ t('toolbox.batchRename.modeCustom') }}</a-radio-button>
+        <a-radio-button value="keepname">{{ t('toolbox.batchRename.modeKeepName') }}</a-radio-button>
         <a-radio-button value="hash">{{ t('toolbox.batchRename.modeHash') }}</a-radio-button>
       </a-radio-group>
 
@@ -77,6 +78,36 @@
         </a-form>
         <div class="text-xs text-gray-400 mb-3">
           {{ t('toolbox.batchRename.previewFormat') }}：<span class="font-mono text-gray-600">{{ previewCustomName }}</span>
+        </div>
+      </div>
+
+      <!-- 保留原名模式 -->
+      <div v-if="mode === 'keepname'">
+        <a-form layout="inline" class="mb-2">
+          <a-form-item :label="t('toolbox.batchRename.keepNamePosition')">
+            <a-radio-group v-model:value="keepNameRule.position" button-style="outline">
+              <a-radio-button value="prefix">{{ t('toolbox.batchRename.keepNamePrefix') }}</a-radio-button>
+              <a-radio-button value="suffix">{{ t('toolbox.batchRename.keepNameSuffix') }}</a-radio-button>
+            </a-radio-group>
+          </a-form-item>
+          <a-form-item :label="t('toolbox.batchRename.keepNameSeparator')">
+            <a-input v-model:value="keepNameRule.separator" style="width:60px" maxlength="1" />
+          </a-form-item>
+          <a-form-item :label="t('toolbox.batchRename.startNumber')">
+            <a-input-number v-model:value="keepNameRule.startNumber" :min="0" style="width:90px" />
+          </a-form-item>
+          <a-form-item :label="t('toolbox.batchRename.numberDigits')">
+            <a-input-number v-model:value="keepNameRule.numberDigits" :min="1" :max="10" style="width:80px" />
+          </a-form-item>
+          <a-form-item :label="t('toolbox.batchRename.numberStep')">
+            <a-input-number v-model:value="keepNameRule.numberStep" :min="1" style="width:80px" />
+          </a-form-item>
+          <a-form-item :label="t('toolbox.batchRename.keepExtension')">
+            <a-switch v-model:checked="keepNameRule.keepExtension" />
+          </a-form-item>
+        </a-form>
+        <div class="text-xs text-gray-400 mb-3">
+          {{ t('toolbox.batchRename.previewFormat') }}：<span class="font-mono text-gray-600">{{ previewKeepName }}</span>
         </div>
       </div>
 
@@ -173,7 +204,7 @@ interface RenameResult {
 const { t } = useI18n()
 const isDragOver = ref(false)
 const loading = ref(false)
-const mode = ref<'custom' | 'hash'>('custom')
+const mode = ref<'custom' | 'keepname' | 'hash'>('custom')
 const files = ref<FileInfo[]>([])
 const previewList = ref<FileInfo[]>([])
 const result = ref<RenameResult | null>(null)
@@ -223,6 +254,15 @@ const customRule = reactive({
   previewBeforeRename: false
 })
 
+const keepNameRule = reactive({
+  position: 'prefix',
+  separator: '-',
+  startNumber: 1,
+  numberDigits: 3,
+  numberStep: 1,
+  keepExtension: true
+})
+
 const hashRule = reactive({
   algorithm: 'md5',
   keepExtension: true
@@ -235,6 +275,17 @@ const previewCustomName = computed(() => {
   const prefix = customRule.prefix ? customRule.prefix + '-' : ''
   const suffix = customRule.suffix ? '-' + customRule.suffix : ''
   return `${prefix}${num}${suffix}${ext}`
+})
+
+// 保留原名模式预览名称示例
+const previewKeepName = computed(() => {
+  const num = String(keepNameRule.startNumber).padStart(keepNameRule.numberDigits || 1, '0')
+  const ext = keepNameRule.keepExtension ? '.ext' : ''
+  const sep = keepNameRule.separator || '-'
+  if (keepNameRule.position === 'prefix') {
+    return `${num}${sep}文件名${ext}`
+  }
+  return `文件名${sep}${num}${ext}`
 })
 
 const fileCols = computed(() => [
@@ -297,6 +348,8 @@ const doPreview = async () => {
   try {
     if (mode.value === 'custom') {
       previewList.value = await RenameService.PreviewRename(files.value, customRule)
+    } else if (mode.value === 'keepname') {
+      previewList.value = await RenameService.PreviewKeepNameRename(files.value, keepNameRule)
     } else {
       previewList.value = await RenameService.PreviewHashRename(files.value, hashRule)
     }
@@ -316,6 +369,8 @@ const doRename = async () => {
     let res: RenameResult | null
     if (mode.value === 'custom') {
       res = await RenameService.ExecuteRename(files.value, customRule)
+    } else if (mode.value === 'keepname') {
+      res = await RenameService.ExecuteKeepNameRename(files.value, keepNameRule)
     } else {
       res = await RenameService.ExecuteHashRename(files.value, hashRule)
     }
