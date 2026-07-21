@@ -41,6 +41,7 @@ go.work.sum
 .codegraph
 .avlcode
 .reasonix
+reasonix.toml
 .joycode
 .skills
 .skill
