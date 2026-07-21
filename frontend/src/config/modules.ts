@@ -98,6 +98,15 @@ export const modules: ModuleConfig[] = [
     icon: 'BugOutlined',
     theme: 'red',
     tags: ['nuclei', 'poc', '漏洞', '模板']
+  },
+  {
+    id: 'pdfParser',
+    nameKey: 'home.modules.pdfParser',
+    description: 'PDF 文件解析与元数据管理',
+    path: '/pdf-parser',
+    icon: 'FilePdfOutlined',
+    theme: 'blue',
+    tags: ['PDF', '元数据', '解析']
   }
 ]
 

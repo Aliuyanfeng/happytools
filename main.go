@@ -32,6 +32,7 @@ import (
 	"github.com/Aliuyanfeng/happytools/backend/services/nuclei"
 	"github.com/Aliuyanfeng/happytools/backend/services/checksum"
 	"github.com/Aliuyanfeng/happytools/backend/services/pnginjector"
+	"github.com/Aliuyanfeng/happytools/backend/services/pdf"
 	"github.com/Aliuyanfeng/happytools/backend/services/greetservice"
 	"github.com/Aliuyanfeng/happytools/backend/services/monitor"
 	"github.com/Aliuyanfeng/happytools/backend/services/network"
@@ -128,6 +129,7 @@ func main() {
 	app.RegisterService(application.NewService(nuclei.NewNucleiService(app)))
 	app.RegisterService(application.NewService(update.NewUpdateService(appVersion, "Aliuyanfeng", "happytools")))
 	app.RegisterService(application.NewService(checksum.NewChecksumService(app)))
+	app.RegisterService(application.NewService(pdf.NewPDFService(app)))
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.

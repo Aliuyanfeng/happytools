@@ -149,6 +149,20 @@ const routes: Array<RouteRecordRaw> = [
         name: 'nuclei-parser',
         meta: { title: 'POC 模板解析' },
         component: () => import('../views/NucleiParser/NucleiParser.vue')
+    },
+    {
+        path: '/pdf-parser',
+        name: 'pdf-parser',
+        meta: { title: 'PDF 解析' },
+        component: () => import('../views/PdfParser/PdfParser.vue'),
+        children: [
+            {
+                path: 'metadata',
+                name: 'pdf-metadata',
+                meta: { title: '元数据解析' },
+                component: () => import('../views/PdfParser/MetadataParser.vue')
+            }
+        ]
     }
 ];
 
