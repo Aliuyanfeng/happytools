@@ -38,6 +38,10 @@ go.work.sum
 .vscode/
 
 .codeartsdoer
+.codegraph
+.avlcode
+.reasonix
+.joycode
 .skills
 .skill
 .kiro

@@ -69,7 +69,7 @@ if ($DryRun) {
     Write-Info "[DRY-RUN] 将提交 CHANGELOG.md"
 } else {
     git add CHANGELOG.md
-    git commit -m "docs: update CHANGELOG for $Version"
+    git commit -m "build: update $Version"
     Write-Success "CHANGELOG 已提交"
 }
 
