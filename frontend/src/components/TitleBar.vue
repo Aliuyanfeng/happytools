@@ -5,10 +5,6 @@
     </div>
 
     <div class="titlebar-right">
-      <div v-if="todoStats.pendingCount > 0" class="todo-badge" @click="goTODO">
-        <CheckCircleOutlined class="todo-icon" />
-        <span>{{ todoStats.pendingCount }} 项待办</span>
-      </div>
       <button class="title-btn settings" :title="t('settings.title')" @mousedown.prevent="openSettings">
         <SettingOutlined class="icon" />
       </button>

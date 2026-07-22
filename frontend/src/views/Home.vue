@@ -1,68 +1,152 @@
 ﻿<template>
   <div class="home">
-    <!-- 背景光晕 -->
-    <div class="aurora">
-      <div class="aurora-blob a1" />
-      <div class="aurora-blob a2" />
-    </div>
-
-    <!-- 左侧：展示区 -->
-    <div class="panel-left">
-      <!-- 图片 -->
-      <div class="img-wrap">
-        <img src="@/assets/images/leftimage-blue.png" alt="banner" class="banner-img" />
-        <div class="img-glow" />
-      </div>
-
-      <!-- 文字说明 -->
-      <div class="desc-block">
-        <h2 class="desc-title">{{ t('home.welcome') }}<br /><span class="desc-accent">{{ t('home.subtitle') }}</span></h2>
-        <div class="feature-tags">
-          <span v-for="f in features" :key="f.icon" class="ftag">
-            <span class="ftag-icon">{{ f.icon }}</span>{{ f.label }}
+    <!-- ═══ 顶部标题栏 ═══ -->
+    <header class="home-header">
+      <div class="header-left">
+        <!-- 主机信息 -->
+        <div class="host-info">
+          <LaptopOutlined class="host-icon" />
+          <span class="host-name">{{ hostName }}</span>
+          <span class="host-sep">/</span>
+          <span class="host-os">{{ hostOs }}</span>
+        </div>
+        <!-- 系统资源极简预览 -->
+        <div class="sys-stats">
+          <span class="stat-item" :class="cpuClass">
+            <DashboardOutlined class="stat-icon" />
+            <span class="stat-val">{{ cpuPercent }}%</span>
+          </span>
+          <span class="stat-item" :class="memClass">
+            <DatabaseOutlined class="stat-icon" />
+            <span class="stat-val">{{ memPercent }}%</span>
           </span>
         </div>
       </div>
 
-      <!-- 时钟 -->
-      <div class="clock-row">
-        <span class="clock-dot" />
-        <span class="clock-time">{{ currentTime }}</span>
-        <span class="clock-greet">· {{ greetingText }}</span>
-      </div>
-    </div>
-
-    <!-- 右侧：功能卡片 -->
-    <div class="panel-right">
-      <div class="right-header">
-        <span class="right-title">{{ t('home.featureEntry') }}</span>
-        <span class="right-count">{{ visibleModules.length }} 个工具</span>
-      </div>
-      <div class="card-grid">
-        <div
-          v-for="(module, i) in visibleModules"
-          :key="module.id"
-          class="card"
-          :class="`c-${module.theme}`"
-          :style="{ animationDelay: `${i * 50}ms` }"
-          @mouseenter="onEnter"
-          @mouseleave="onLeave"
-          @click="go(module.path)"
-        >
-          <div class="card-spot" />
-          <!-- 右侧大号装饰图标 -->
-          <div class="card-deco">
-            <component :is="getIconComponent(module.icon)" />
-          </div>
-          <!-- 左侧内容 -->
-          <div class="card-icon-wrap">
-            <component :is="getIconComponent(module.icon)" />
-          </div>
-          <span class="card-name">{{ t(module.nameKey) }}</span>
-          <ArrowRightOutlined class="card-arrow" />
+      <div class="header-right">
+        <!-- 全局搜索 -->
+        <div class="search-box">
+          <SearchOutlined class="search-icon" />
+          <input
+            v-model="homeStore.searchQuery"
+            :placeholder="t('home.search')"
+            class="search-input"
+          />
+          <span v-if="homeStore.searchQuery" class="search-clear" @click="homeStore.searchQuery = ''">×</span>
         </div>
+
+        <!-- 待办气泡 -->
+        <a-popover trigger="click" placement="bottomRight" :overlay-style="{ minWidth: '300px', maxWidth: '340px' }">
+          <template #content>
+            <div class="todo-preview-panel">
+              <div class="todo-preview-header">
+                <span class="todo-preview-title">{{ t('home.todoPreviewTitle') }}</span>
+                <span class="todo-preview-count">{{ todoStats.pendingCount }}</span>
+              </div>
+              <div v-if="allTodos.length === 0" class="todo-empty">{{ t('home.noPendingTodos') }}</div>
+              <div v-else class="todo-preview-list">
+                <div
+                  v-for="todo in allTodos"
+                  :key="todo.id"
+                  class="todo-preview-item"
+                  :class="{ 'is-done': todo.completed }"
+                >
+                  <span
+                    class="todo-check"
+                    :class="{ checked: todo.completed }"
+                    @click.stop="toggleTodoInPreview(todo)"
+                  >
+                    <CheckOutlined v-if="todo.completed" />
+                  </span>
+                  <span class="todo-preview-title-text">{{ todo.title }}</span>
+                  <span v-if="todo.due_date" class="todo-due" :class="{ overdue: todo.status === 2, warning: todo.status === 1 }">
+                    {{ todo.due_date }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="allTodos.length > 0" class="todo-preview-footer">
+                <span class="todo-view-all" @click="go('/todo')">{{ t('home.viewAllTodos') }} →</span>
+              </div>
+            </div>
+          </template>
+          <div class="todo-bubble">
+            <CheckCircleOutlined />
+            <span v-if="todoStats.pendingCount > 0" class="todo-badge">{{ todoStats.pendingCount }}</span>
+          </div>
+        </a-popover>
+
+        <!-- 时钟 -->
+        <span class="header-clock">{{ currentTime }}</span>
       </div>
-    </div>
+    </header>
+
+    <!-- ═══ 分类导航 ═══ -->
+    <nav class="category-nav">
+      <button
+        v-for="cat in categories"
+        :key="cat.id"
+        class="cat-btn"
+        :class="{ active: homeStore.activeCategory === cat.id }"
+        @click="homeStore.setCategory(cat.id)"
+      >
+        <component :is="cat.icon" class="cat-icon" />
+        <span>{{ t(`home.category.${cat.id}`) }}</span>
+      </button>
+    </nav>
+
+    <!-- ═══ 模块卡片网格 ═══ -->
+    <main class="home-main">
+      <draggable
+        v-model="draggableModules"
+        item-key="id"
+        class="module-grid"
+        :animation="200"
+        ghost-class="card-ghost"
+        @end="onDragEnd"
+      >
+        <template #item="{ element: module }">
+          <div
+            class="module-card"
+            :class="`cat-${module.category}`"
+            @click="go(module.path)"
+            @mouseenter="onCardEnter($event)"
+            @mouseleave="onCardLeave($event)"
+          >
+            <!-- 收藏按钮 -->
+            <span
+              class="card-fav"
+              :class="{ faved: homeStore.isFavorite(module.id) }"
+              @click.stop="homeStore.toggleFavorite(module.id)"
+            >
+              <StarFilled v-if="homeStore.isFavorite(module.id)" />
+              <StarOutlined v-else />
+            </span>
+
+            <!-- 图标 + 名称 -->
+            <div class="card-top">
+              <div class="card-icon-wrap" :class="`icon-${module.theme}`">
+                <component :is="getIconComponent(module.icon)" />
+              </div>
+              <span class="card-name">{{ t(module.nameKey) }}</span>
+            </div>
+
+            <!-- 描述 -->
+            <p class="card-desc">{{ module.description }}</p>
+
+            <!-- 消息角标 -->
+            <span v-if="module.badge && module.badge > 0" class="card-badge" :class="`badge-${module.category}`">
+              {{ module.badge > 99 ? '99+' : module.badge }}
+            </span>
+          </div>
+        </template>
+      </draggable>
+
+      <!-- 空状态 -->
+      <div v-if="homeStore.displayedModules.length === 0" class="empty-state">
+        <SearchOutlined class="empty-icon" />
+        <p>{{ t('home.noResults') }}</p>
+      </div>
+    </main>
   </div>
 </template>
 
@@ -70,410 +154,747 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import draggable from 'vuedraggable'
 import {
   DashboardOutlined, CheckCircleOutlined, ToolOutlined,
   SafetyOutlined, ApartmentOutlined, CalendarOutlined,
-  BranchesOutlined, FileTextOutlined, ArrowRightOutlined,
-  BugOutlined,
+  BranchesOutlined, FileTextOutlined, BugOutlined,
+  FilePdfOutlined, SearchOutlined, StarOutlined, StarFilled,
+  DatabaseOutlined, SecurityScanOutlined,
+  CodeOutlined, ThunderboltOutlined, GlobalOutlined,
+  FileProtectOutlined, AppstoreOutlined, LaptopOutlined,
+  CheckOutlined,
 } from '@ant-design/icons-vue'
-import { modules } from '@/config/modules'
-import { useSettingsStore } from '@/stores/settings'
+import { useHomeStore, type CategoryId } from '@/stores/home'
+import { useTodoStatsStore } from '@/stores/todoStats'
+import { GetCPUInfo, GetMemoryInfo, GetHostInfo } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/monitor/sysinfoservice'
+import { TodoService } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/todo'
+import type { Todo } from '../../bindings/github.com/Aliuyanfeng/happytools/backend/services/todo/models'
 
 const { t } = useI18n()
 const router = useRouter()
-const settingsStore = useSettingsStore()
+const homeStore = useHomeStore()
+const todoStats = useTodoStatsStore()
 
-const visibleModules = computed(() =>
-  modules.filter(m => !settingsStore.hiddenModules.includes(m.id))
-)
-
+// ── 图标映射 ──
 const iconMap: Record<string, any> = {
   DashboardOutlined, CheckCircleOutlined, ToolOutlined,
   SafetyOutlined, ApartmentOutlined, CalendarOutlined,
   BranchesOutlined, FileTextOutlined, BugOutlined,
+  FilePdfOutlined,
 }
 function getIconComponent(n: string) { return iconMap[n] || DashboardOutlined }
 function go(path: string) { router.push(path) }
 
-const features = [
-  { icon: '⚡', label: t('home.lightFast') },
-  { icon: '🔒', label: t('home.secure') },
-  { icon: '🎯', label: t('home.simple') },
+// ── 分类导航 ──
+const categories: { id: CategoryId; icon: any }[] = [
+  { id: 'all', icon: AppstoreOutlined },
+  { id: 'security', icon: SecurityScanOutlined },
+  { id: 'dev', icon: CodeOutlined },
+  { id: 'efficiency', icon: ThunderboltOutlined },
+  { id: 'network', icon: GlobalOutlined },
+  { id: 'doc', icon: FileProtectOutlined },
 ]
 
-// 3D 倾斜 + 鼠标光斑
-function onEnter(e: MouseEvent) {
-  const card = e.currentTarget as HTMLElement
-  const spot = card.querySelector('.card-spot') as HTMLElement
-
-  function move(ev: MouseEvent) {
-    const r = card.getBoundingClientRect()
-    const x = ev.clientX - r.left
-    const y = ev.clientY - r.top
-    spot.style.setProperty('--sx', `${x}px`)
-    spot.style.setProperty('--sy', `${y}px`)
-    spot.style.opacity = '1'
-    const rx = ((y / r.height) - 0.5) * -10
-    const ry = ((x / r.width)  - 0.5) *  10
-    card.style.transform = `translateY(-6px) scale(1.06) rotateX(${rx}deg) rotateY(${ry}deg)`
-  }
-  card.addEventListener('mousemove', move)
-  ;(card as any)._move = move
+// ── 拖拽排序 ──
+const draggableModules = computed({
+  get() {
+    return homeStore.displayedModules
+  },
+  set(val: any[]) {
+    homeStore.updateSort(val.map(m => m.id))
+  },
+})
+function onDragEnd() {
+  // 排序已通过 computed setter 持久化
 }
 
-function onLeave(e: MouseEvent) {
-  const card = e.currentTarget as HTMLElement
-  const spot = card.querySelector('.card-spot') as HTMLElement
-  card.removeEventListener('mousemove', (card as any)._move)
-  spot.style.opacity = '0'
-  card.style.transform = ''
+// ── 主机信息 ──
+const hostName = ref('--')
+const hostOs = ref('--')
+
+async function refreshHostInfo() {
+  try {
+    const info = await GetHostInfo()
+    if (info) {
+      hostName.value = info.hostname || '--'
+      hostOs.value = info.platform || '--'
+    }
+  } catch { /* 静默 */ }
 }
 
-// 时钟
+// ── 系统资源 ──
+const cpuPercent = ref(0)
+const memPercent = ref(0)
+let statsTimer: ReturnType<typeof setInterval> | null = null
+
+async function refreshStats() {
+  try {
+    const [cpu, mem] = await Promise.all([GetCPUInfo(), GetMemoryInfo()])
+    if (cpu && cpu.core_usages?.length) {
+      cpuPercent.value = Math.round(cpu.core_usages.reduce((a, b) => a + b, 0) / cpu.core_usages.length)
+    }
+    if (mem) {
+      memPercent.value = Math.round(mem.used_percent)
+    }
+  } catch { /* 静默 */ }
+}
+
+const cpuClass = computed(() => cpuPercent.value > 80 ? 'stat-warn' : '')
+const memClass = computed(() => memPercent.value > 80 ? 'stat-warn' : '')
+
+// ── 待办气泡 ──
+const allTodos = ref<Todo[]>([])
+
+async function refreshTodos() {
+  try {
+    const all = await TodoService.GetAll()
+    allTodos.value = all ?? []
+    todoStats.pendingCount = allTodos.value.filter((t: any) => !t.completed).length
+  } catch { /* 静默 */ }
+}
+
+async function toggleTodoInPreview(todo: Todo) {
+  try {
+    await TodoService.Toggle(todo.id)
+    todo.completed = !todo.completed
+    todoStats.pendingCount = allTodos.value.filter((t: any) => !t.completed).length
+  } catch { /* 静默 */ }
+}
+
+// ── 时钟 ──
 const now = ref(new Date())
-let timer: ReturnType<typeof setInterval>
-onMounted(() => { timer = setInterval(() => { now.value = new Date() }, 1000) })
-onUnmounted(() => clearInterval(timer))
+let clockTimer: ReturnType<typeof setInterval>
+onMounted(() => {
+  clockTimer = setInterval(() => { now.value = new Date() }, 1000)
+  refreshHostInfo()
+  refreshStats()
+  statsTimer = setInterval(refreshStats, 5000)
+  refreshTodos()
+})
+onUnmounted(() => {
+  clearInterval(clockTimer)
+  if (statsTimer) clearInterval(statsTimer)
+})
 
 const pad = (n: number) => n.toString().padStart(2, '0')
 const currentTime = computed(() =>
   `${pad(now.value.getHours())}:${pad(now.value.getMinutes())}:${pad(now.value.getSeconds())}`
 )
-const greetingText = computed(() => {
-  const h = now.value.getHours()
-  if (h < 6)  return 'Good Night'
-  if (h < 12) return 'Good Morning'
-  if (h < 18) return 'Good Afternoon'
-  return 'Good Evening'
-})
+
+// ── 卡片 hover 扫光动画 ──
+function onCardEnter(e: MouseEvent) {
+  const card = (e.currentTarget as HTMLElement)
+  card.classList.remove('sweep-done')
+  card.classList.add('sweep-active')
+}
+function onCardLeave(e: MouseEvent) {
+  const card = (e.currentTarget as HTMLElement)
+  card.classList.remove('sweep-active')
+  card.classList.add('sweep-done')
+}
 </script>
 
 <style scoped>
 /* ── 根容器 ── */
 .home {
-  position: relative;
   width: 100%;
   height: 100%;
-  background: #f0f4ff;
+  background: #f8fafc;
   display: flex;
+  flex-direction: column;
   overflow: hidden;
-}
-
-/* ── 背景光晕 ── */
-.aurora { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.aurora-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  animation: blob 20s ease-in-out infinite alternate;
-}
-.a1 {
-  width: 50vw; height: 50vw;
-  background: radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%);
-  top: -20%; left: -10%;
-}
-.a2 {
-  width: 40vw; height: 40vw;
-  background: radial-gradient(circle, rgba(6,182,212,0.12), transparent 70%);
-  bottom: -15%; right: 30%;
-  animation-delay: -10s;
-}
-@keyframes blob {
-  0%   { transform: translate(0,0) scale(1); }
-  50%  { transform: translate(4%,6%) scale(1.08); }
-  100% { transform: translate(-3%,3%) scale(0.95); }
 }
 
 /* ══════════════════════════════════════
-   左侧展示区
+   顶部标题栏
 ══════════════════════════════════════ */
-.panel-left {
-  position: relative;
-  z-index: 1;
-  width: 42%;
+.home-header {
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 24px 28px;
-  border-right: 1px solid rgba(99,102,241,0.1);
-  background: rgba(255,255,255,0.45);
-  backdrop-filter: blur(12px);
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 16px;
 }
 
-/* 图片容器 */
-.img-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 340px;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 12px 48px rgba(99,102,241,0.18);
-  animation: float 5s ease-in-out infinite;
-}
-@keyframes float {
-  0%,100% { transform: translateY(0); }
-  50%      { transform: translateY(-8px); }
-}
-
-.banner-img {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 20px;
-}
-
-.img-glow {
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 60%);
-  pointer-events: none;
-}
-
-/* 文字说明 */
-.desc-block {
-  width: 100%;
-  max-width: 340px;
+.header-left {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
   align-items: center;
-  text-align: center;
+  gap: 16px;
 }
 
-.desc-title {
-  font-size: clamp(20px, 2.2vw, 28px);
-  font-weight: 700;
-  color: #1e1b4b;
-  margin: 0;
-  line-height: 1.4;
-  animation: title-in 0.6s 0.1s ease both;
-}
-@keyframes title-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: none; }
-}
-
-.desc-accent {
-  background: linear-gradient(135deg, #6366f1, #ec4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.feature-tags {
+/* 主机信息 */
+.host-info {
   display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
-  justify-content: center;
-  animation: title-in 0.6s 0.2s ease both;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
 }
 
-.ftag {
+.host-icon {
+  font-size: 14px;
+  color: #6366f1;
+  opacity: 0.8;
+}
+
+.host-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.host-sep {
+  color: #cbd5e1;
+  margin: 0 1px;
+}
+
+.host-os {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* 系统资源极简预览 */
+.sys-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-item {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.7);
-  border: 1px solid rgba(99,102,241,0.12);
-  font-size: 11px;
-  color: #475569;
-  white-space: nowrap;
-  font-weight: 500;
+  font-size: 12px;
+  color: #64748b;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  transition: color 0.2s, background 0.2s;
 }
-.ftag-icon { font-size: 13px; }
 
-/* 时钟行 */
-.clock-row {
+.stat-item.stat-warn {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.stat-icon {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.stat-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 全局搜索 */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-box:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.search-icon {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: #1e293b;
+  width: 140px;
+}
+
+.search-input::placeholder {
+  color: #cbd5e1;
+}
+
+.search-clear {
+  font-size: 14px;
+  color: #94a3b8;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.search-clear:hover {
+  color: #64748b;
+}
+
+/* 待办气泡 */
+.todo-bubble {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  cursor: pointer;
+  font-size: 16px;
+  color: #64748b;
+  transition: background 0.2s, color 0.2s;
+}
+
+.todo-bubble:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.todo-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* 待办预览面板 */
+.todo-preview-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.todo-preview-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.todo-preview-count {
+  font-size: 11px;
+  color: #fff;
+  background: #6366f1;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.todo-preview-list {
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.todo-preview-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.todo-preview-list::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+.todo-preview-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  animation: title-in 0.6s 0.3s ease both;
-}
-.clock-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: #6366f1;
-  animation: ping 2s ease-in-out infinite;
-  box-shadow: 0 0 0 0 rgba(99,102,241,0.5);
-}
-@keyframes ping {
-  0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
-  50%      { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
-}
-.clock-time {
+  padding: 7px 4px;
+  border-bottom: 1px solid #f8fafc;
   font-size: 13px;
-  font-weight: 700;
-  color: #1e1b4b;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 2px;
+  color: #334155;
+  transition: background 0.15s;
+  border-radius: 4px;
 }
-.clock-greet { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+
+.todo-preview-item:hover {
+  background: #f8fafc;
+}
+
+.todo-preview-item.is-done {
+  opacity: 0.5;
+}
+
+.todo-preview-item.is-done .todo-preview-title-text {
+  text-decoration: line-through;
+}
+
+.todo-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  font-size: 10px;
+  color: transparent;
+}
+
+.todo-check:hover {
+  border-color: #6366f1;
+}
+
+.todo-check.checked {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.todo-preview-title-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.todo-due {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.todo-due.overdue {
+  color: #ef4444;
+}
+
+.todo-due.warning {
+  color: #f59e0b;
+}
+
+.todo-preview-footer {
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.todo-view-all {
+  font-size: 12px;
+  color: #6366f1;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.todo-view-all:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+.todo-empty {
+  font-size: 13px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.header-clock {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
 
 /* ══════════════════════════════════════
-   右侧功能卡片
+   分类导航
 ══════════════════════════════════════ */
-.panel-right {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 20px 20px 16px;
-  gap: 12px;
-  overflow: hidden;
-}
-
-.right-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+.category-nav {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  overflow-x: auto;
 }
-.right-title { font-size: 15px; font-weight: 700; color: #1e1b4b; white-space: nowrap; }
-.right-count { font-size: 11px; color: #cbd5e1; white-space: nowrap; }
 
-/* 等高均匀网格 */
-.card-grid {
+.cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.cat-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.cat-btn.active {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+  font-weight: 500;
+}
+
+.cat-icon {
+  font-size: 14px;
+}
+
+/* ══════════════════════════════════════
+   模块卡片网格
+══════════════════════════════════════ */
+.home-main {
   flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.module-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  grid-auto-rows: 1fr;
-  gap: 10px;
-  overflow: hidden;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 /* 卡片入场 */
 @keyframes card-in {
-  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* 卡片基础：左对齐，图标左上，文字左下 */
-.card {
+/* 模块卡片 */
+.module-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 14px 14px 12px;
-  border-radius: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
   cursor: pointer;
   overflow: hidden;
-  transform-style: preserve-3d;
-  transition: transform 0.28s cubic-bezier(0.23,1,0.32,1), box-shadow 0.28s ease;
-  animation: card-in 0.4s cubic-bezier(0.23,1,0.32,1) both;
-  border: 1px solid rgba(255,255,255,0.75);
-  min-height: 0;
+  transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 0.25s ease,
+              border-color 0.25s ease;
+  animation: card-in 0.3s ease both;
 }
-.card:hover { transform: translateY(-4px) scale(1.02); }
 
-/* 右侧大号半透明装饰图标 */
-.card-deco {
+.module-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: #cbd5e1;
+}
+
+/* 卡片顶部装饰线 */
+.module-card::before {
+  content: '';
   position: absolute;
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 64px;
-  line-height: 1;
-  opacity: 0.08;
-  pointer-events: none;
-  transition: opacity 0.28s, transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
-}
-.card:hover .card-deco {
-  opacity: 0.15;
-  transform: translateY(-50%) scale(1.12) rotate(-8deg);
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  opacity: 0.5;
+  transition: opacity 0.25s;
 }
 
-/* 左上：图标 */
+.module-card:hover::before {
+  opacity: 1;
+}
+
+/* 分类主色 - VT/POC 红色、Git/工具盒紫色 */
+.cat-security::before { background: #ef4444; }
+.cat-dev::before      { background: #6366f1; }
+.cat-efficiency::before { background: #22c55e; }
+.cat-network::before  { background: #f97316; }
+.cat-doc::before      { background: #06b6d4; }
+
+/* ── 扫光动画 ── */
+@keyframes sweep-light {
+  0%   { left: -60%; opacity: 0; }
+  10%  { opacity: 0.7; }
+  90%  { opacity: 0.7; }
+  100% { left: 110%; opacity: 0; }
+}
+
+.module-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  border-radius: 0 0 2px 2px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.module-card.sweep-active::after {
+  animation: sweep-light 0.6s ease-out forwards;
+}
+
+.module-card.sweep-done::after {
+  opacity: 0;
+  animation: none;
+}
+
+/* 收藏按钮 */
+.card-fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 14px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+  z-index: 2;
+}
+
+.card-fav:hover {
+  transform: scale(1.2);
+}
+
+.card-fav.faved {
+  color: #f59e0b;
+}
+
+/* 卡片内容 */
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .card-icon-wrap {
-  width: 38px; height: 38px;
-  border-radius: 11px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 17px;
   flex-shrink: 0;
-  transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
-  position: relative;
-  z-index: 1;
 }
-.card:hover .card-icon-wrap { transform: scale(1.12) rotate(5deg); }
 
-/* 左下：文字 */
+.icon-blue   { background: rgba(99, 102, 241, 0.1);  color: #4f46e5; }
+.icon-green  { background: rgba(34, 197, 94, 0.1);   color: #16a34a; }
+.icon-purple { background: rgba(168, 85, 247, 0.1);  color: #9333ea; }
+.icon-orange { background: rgba(249, 115, 22, 0.1);  color: #ea580c; }
+.icon-red    { background: rgba(239, 68, 68, 0.1);   color: #dc2626; }
+.icon-cyan   { background: rgba(6, 182, 212, 0.1);   color: #0891b2; }
+
 .card-name {
-  font-size: 18px;
-  font-weight: 700;
-  white-space: nowrap;
-  letter-spacing: 0.2px;
-  position: relative;
-  z-index: 1;
-  transition: transform 0.2s ease;
-}
-.card:hover .card-name { transform: translateX(2px); }
-
-/* 右下角箭头（hover 出现） */
-.card-arrow {
-  position: absolute;
-  bottom: 10px;
-  right: 12px;
   font-size: 14px;
-  opacity: 0;
-  transform: translate(-3px, 3px);
-  transition: opacity 0.2s, transform 0.2s;
-  z-index: 1;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.card:hover .card-arrow { opacity: 1; transform: translate(0, 0); }
 
-/* 鼠标光斑 */
-.card-spot {
+.card-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 消息角标 - 按业务域统一色彩 */
+.card-badge {
   position: absolute;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  transform: translate(calc(var(--sx,50%) - 60px), calc(var(--sy,50%) - 60px));
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
+  top: 8px;
+  left: 8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  line-height: 1;
 }
 
-/* ── 主题色 ── */
-.c-blue   { background: linear-gradient(145deg,#eef2ff,#e0e7ff); box-shadow:0 2px 10px rgba(99,102,241,.1); }
-.c-green  { background: linear-gradient(145deg,#ecfdf5,#d1fae5); box-shadow:0 2px 10px rgba(16,185,129,.1); }
-.c-purple { background: linear-gradient(145deg,#faf5ff,#f3e8ff); box-shadow:0 2px 10px rgba(168,85,247,.1); }
-.c-orange { background: linear-gradient(145deg,#fff7ed,#ffedd5); box-shadow:0 2px 10px rgba(249,115,22,.1); }
-.c-red    { background: linear-gradient(145deg,#fff1f2,#ffe4e6); box-shadow:0 2px 10px rgba(239,68,68,.1); }
-.c-cyan   { background: linear-gradient(145deg,#ecfeff,#cffafe); box-shadow:0 2px 10px rgba(6,182,212,.1); }
+.badge-security   { background: #ef4444; }
+.badge-dev        { background: #6366f1; }
+.badge-efficiency { background: #94a3b8; }
+.badge-network    { background: #f97316; }
+.badge-doc        { background: #06b6d4; }
 
-.c-blue:hover   { box-shadow:0 10px 30px rgba(99,102,241,.25); }
-.c-green:hover  { box-shadow:0 10px 30px rgba(16,185,129,.25); }
-.c-purple:hover { box-shadow:0 10px 30px rgba(168,85,247,.25); }
-.c-orange:hover { box-shadow:0 10px 30px rgba(249,115,22,.25); }
-.c-red:hover    { box-shadow:0 10px 30px rgba(239,68,68,.25); }
-.c-cyan:hover   { box-shadow:0 10px 30px rgba(6,182,212,.25); }
+/* 拖拽占位 */
+.card-ghost {
+  opacity: 0.4;
+  border-style: dashed;
+}
 
-.c-blue   .card-icon-wrap { background:rgba(99,102,241,.14); color:#4f46e5; }
-.c-green  .card-icon-wrap { background:rgba(16,185,129,.14); color:#059669; }
-.c-purple .card-icon-wrap { background:rgba(168,85,247,.14); color:#9333ea; }
-.c-orange .card-icon-wrap { background:rgba(249,115,22,.14); color:#ea580c; }
-.c-red    .card-icon-wrap { background:rgba(239,68,68,.14);  color:#dc2626; }
-.c-cyan   .card-icon-wrap { background:rgba(6,182,212,.14);  color:#0891b2; }
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  color: #94a3b8;
+}
 
-.c-blue   .card-name  { color:#3730a3; } .c-blue   .card-arrow { color:#4f46e5; } .c-blue   .card-deco { color:#4f46e5; }
-.c-green  .card-name  { color:#065f46; } .c-green  .card-arrow { color:#059669; } .c-green  .card-deco { color:#059669; }
-.c-purple .card-name  { color:#6b21a8; } .c-purple .card-arrow { color:#9333ea; } .c-purple .card-deco { color:#9333ea; }
-.c-orange .card-name  { color:#9a3412; } .c-orange .card-arrow { color:#ea580c; } .c-orange .card-deco { color:#ea580c; }
-.c-red    .card-name  { color:#991b1b; } .c-red    .card-arrow { color:#dc2626; } .c-red    .card-deco { color:#dc2626; }
-.c-cyan   .card-name  { color:#155e75; } .c-cyan   .card-arrow { color:#0891b2; } .c-cyan   .card-deco { color:#0891b2; }
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
 
-.c-blue   .card-spot { background:radial-gradient(circle,rgba(99,102,241,.18),transparent 70%); }
-.c-green  .card-spot { background:radial-gradient(circle,rgba(16,185,129,.18),transparent 70%); }
-.c-purple .card-spot { background:radial-gradient(circle,rgba(168,85,247,.18),transparent 70%); }
-.c-orange .card-spot { background:radial-gradient(circle,rgba(249,115,22,.18),transparent 70%); }
-.c-red    .card-spot { background:radial-gradient(circle,rgba(239,68,68,.18), transparent 70%); }
-.c-cyan   .card-spot { background:radial-gradient(circle,rgba(6,182,212,.18), transparent 70%); }
+.empty-state p {
+  font-size: 14px;
+  margin: 0;
+}
 </style>

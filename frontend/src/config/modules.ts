@@ -6,6 +6,8 @@
 import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+export type ModuleCategory = 'security' | 'dev' | 'efficiency' | 'network' | 'doc'
+
 export interface ModuleConfig {
   id: string
   nameKey: string // i18n key
@@ -13,7 +15,8 @@ export interface ModuleConfig {
   path: string
   icon: string
   theme: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'cyan'
-  tags?: string[]
+  category: ModuleCategory
+  badge?: number // 消息角标数
 }
 
 // 功能模块列表
@@ -21,83 +24,83 @@ export const modules: ModuleConfig[] = [
   {
     id: 'dashboard',
     nameKey: 'home.modules.dashboard',
-    description: '',
+    description: '实时监控系统运行状态与资源占用',
     path: '/dashboard',
     icon: 'DashboardOutlined',
     theme: 'blue',
-    tags: []
+    category: 'dev',
   },
   {
     id: 'todo',
     nameKey: 'home.modules.todo',
-    description: '',
+    description: '高效管理待办事项与任务提醒',
     path: '/todo',
     icon: 'CheckCircleOutlined',
     theme: 'green',
-    tags: []
+    category: 'efficiency',
   },
   {
     id: 'toolbox',
     nameKey: 'home.modules.toolbox',
-    description: '',
+    description: '常用开发工具集合，一键调用',
     path: '/toolbox',
     icon: 'ToolOutlined',
     theme: 'purple',
-    tags: []
+    category: 'dev',
   },
   {
     id: 'virusTotal',
     nameKey: 'home.modules.virusTotal',
-    description: '',
+    description: '在线病毒检测与文件安全分析',
     path: '/vt',
     icon: 'SafetyOutlined',
     theme: 'red',
-    tags: []
+    category: 'security',
   },
   {
     id: 'network',
     nameKey: 'home.modules.network',
-    description: '',
+    description: '网络连接调试与诊断工具',
     path: '/network',
     icon: 'ApartmentOutlined',
     theme: 'orange',
-    tags: []
+    category: 'network',
   },
   {
     id: 'dailyReport',
     nameKey: 'home.modules.dailyReport',
-    description: '记录每日工作日报，日历视图展示，支持周月切换',
+    description: '记录每日工作日报，日历视图展示',
     path: '/dailyReport',
     icon: 'CalendarOutlined',
     theme: 'cyan',
-    tags: ['日报', '日历', '工作记录']
+    category: 'efficiency',
   },
   {
     id: 'gitConfig',
     nameKey: 'home.modules.gitConfig',
-    description: '',
+    description: 'Git 用户配置与多账号管理',
     path: '/git-config',
     icon: 'BranchesOutlined',
     theme: 'green',
-    tags: []
+    category: 'dev',
   },
   {
     id: 'makefileEditor',
     nameKey: 'home.modules.makefileEditor',
-    description: '',
+    description: 'Makefile 语法高亮编辑与模板管理',
     path: '/makefile-editor',
     icon: 'FileTextOutlined',
     theme: 'orange',
-    tags: []
+    category: 'dev',
   },
   {
     id: 'nucleiParser',
     nameKey: 'home.modules.nucleiParser',
-    description: 'Nuclei POC 模板可视化解析，支持 HTTP/DNS/TCP 协议',
+    description: 'Nuclei POC 模板可视化解析',
     path: '/nuclei-parser',
     icon: 'BugOutlined',
     theme: 'red',
-    tags: ['nuclei', 'poc', '漏洞', '模板']
+    category: 'security',
   },
   {
     id: 'pdfParser',
@@ -106,7 +109,7 @@ export const modules: ModuleConfig[] = [
     path: '/pdf-parser',
     icon: 'FilePdfOutlined',
     theme: 'blue',
-    tags: ['PDF', '元数据', '解析']
+    category: 'doc',
   }
 ]
 
